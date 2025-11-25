@@ -50,7 +50,11 @@ func main() {
 	lessonService := service.NewLessonService(lessonRepo)
 	lessonHandler := handler.NewLessonHandler(lessonService)
 
-	r := router.New(cfg, db, tokenMaker, tokenBlacklist, authHandler, courseHandler, lessonHandler)
+	enrollmentRepo := repository.NewEnrollmentRepository(db)
+	enrollmentService := service.NewEnrollmentService(enrollmentRepo, courseRepo, userRepo)
+	enrollmentHandler := handler.NewEnrollmentHandler(enrollmentService)
+
+	r := router.New(cfg, db, tokenMaker, tokenBlacklist, authHandler, courseHandler, lessonHandler, enrollmentHandler)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,

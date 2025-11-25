@@ -22,6 +22,7 @@ func New(
 	authHandler *handler.AuthHandler,
 	courseHandler *handler.CourseHandler,
 	lessonHandler *handler.LessonHandler,
+	enrollmentHandler *handler.EnrollmentHandler,
 ) *gin.Engine {
 
 	gin.SetMode(cfg.Server.GinMode)
@@ -115,6 +116,47 @@ func New(
 		lessons.PUT("/:lesson_id", middleware.AuthMiddleware(tokenMaker, tokenBlacklist), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Update)
 		lessons.DELETE("/:lesson_id", middleware.AuthMiddleware(tokenMaker, tokenBlacklist), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Delete)
 		lessons.PUT("/reorder", middleware.AuthMiddleware(tokenMaker, tokenBlacklist), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Reorder)
+	}
+
+	// ENROLLMENT ROUTES
+	enrollments := v1.Group("/enrollments")
+	enrollments.Use(middleware.AuthMiddleware(tokenMaker, tokenBlacklist))
+	{
+		// Get my enrolled courses
+		enrollments.GET("/my-courses", enrollmentHandler.GetMyEnrollments)
+
+		// Update progress
+		enrollments.PUT("/:enrollment_id/progress", enrollmentHandler.UpdateProgress)
+	}
+
+	// Course-specific enrollment routes
+	courseEnrollments := v1.Group("/courses/:course_id")
+	{
+		// Enroll in a course (students)
+		courseEnrollments.POST("/enroll",
+			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
+			middleware.RequireRole(domain.RoleStudent, domain.RoleAdmin),
+			enrollmentHandler.Enroll,
+		)
+
+		// Unenroll from a course
+		courseEnrollments.POST("/unenroll",
+			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
+			enrollmentHandler.Unenroll,
+		)
+
+		// Check enrollment status
+		courseEnrollments.GET("/enrollment-status",
+			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
+			enrollmentHandler.GetEnrollmentStatus,
+		)
+
+		// Get list of enrolled students (teacher only)
+		courseEnrollments.GET("/enrollments",
+			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
+			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
+			enrollmentHandler.GetCourseEnrollments,
+		)
 	}
 
 	return r
