@@ -15,10 +15,15 @@ const (
 	authHeaderKey      = "Authorization"
 	authTypeBearer     = "bearer"
 	authPayloadContext = "auth_payload"
+	authTokenContext   = "auth_token" // Store the actual token string
 )
 
+func errorResponse(msg string) gin.H {
+	return gin.H{"error": msg}
+}
+
 // AuthMiddleware verifies JWT and stores claims into context
-func AuthMiddleware(tokenMaker token.TokenMaker) gin.HandlerFunc {
+func AuthMiddleware(tokenMaker token.TokenMaker, blacklist token.TokenBlacklist) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.GetHeader(authHeaderKey)
 		if header == "" {
@@ -38,6 +43,13 @@ func AuthMiddleware(tokenMaker token.TokenMaker) gin.HandlerFunc {
 		}
 
 		tokenStr := parts[1]
+
+		// Check if token is blacklisted
+		if blacklist != nil && blacklist.IsBlacklisted(tokenStr) {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse("token has been revoked"))
+			return
+		}
+
 		claims, err := tokenMaker.VerifyToken(tokenStr)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse("invalid or expired token"))
@@ -45,6 +57,7 @@ func AuthMiddleware(tokenMaker token.TokenMaker) gin.HandlerFunc {
 		}
 
 		c.Set(authPayloadContext, claims)
+		c.Set(authTokenContext, tokenStr) // Store token for logout
 		c.Next()
 	}
 }
@@ -92,6 +105,17 @@ func GetCurrentUser(c *gin.Context) (*token.Claims, error) {
 	return claims, nil
 }
 
-func errorResponse(msg string) gin.H {
-	return gin.H{"error": msg}
+// GetCurrentToken extracts the current JWT token string
+func GetCurrentToken(c *gin.Context) (string, error) {
+	tokenStr, exists := c.Get(authTokenContext)
+	if !exists {
+		return "", errors.New("auth token not found")
+	}
+
+	tokenString, ok := tokenStr.(string)
+	if !ok {
+		return "", errors.New("invalid auth token")
+	}
+
+	return tokenString, nil
 }

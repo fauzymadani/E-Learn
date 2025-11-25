@@ -34,8 +34,12 @@ func main() {
 		log.Fatalf("jwt maker error: %v", err)
 	}
 
+	// Initialize token blacklist (cleanup every 1 hour)
+	tokenBlacklist := token.NewInMemoryBlacklist(1 * time.Hour)
+	log.Println("Token blacklist initialized")
+
 	userRepo := repository.NewUserRepository(db)
-	authService := service.NewAuthService(userRepo, tokenMaker, cfg.JWT.Expiration)
+	authService := service.NewAuthService(userRepo, tokenMaker, tokenBlacklist, cfg.JWT.Expiration)
 	authHandler := handler.NewAuthHandler(authService)
 
 	courseRepo := repository.NewCourseRepository(db)
@@ -46,7 +50,7 @@ func main() {
 	lessonService := service.NewLessonService(lessonRepo)
 	lessonHandler := handler.NewLessonHandler(lessonService)
 
-	r := router.New(cfg, db, tokenMaker, authHandler, courseHandler, lessonHandler)
+	r := router.New(cfg, db, tokenMaker, tokenBlacklist, authHandler, courseHandler, lessonHandler)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,

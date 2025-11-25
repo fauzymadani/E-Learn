@@ -49,12 +49,13 @@ type AuthService interface {
 	Register(req RegisterRequest) (*AuthResponse, error)
 	Login(req LoginRequest) (*AuthResponse, error)
 	GetProfile(userID uint) (*UserProfile, error)
-	Logout(userID uint) error
+	Logout(userID uint, token string) error
 }
 
 type authService struct {
 	userRepo   repository.UserRepository
 	tokenMaker token.TokenMaker
+	blacklist  token.TokenBlacklist
 	jwtExpiry  time.Duration
 }
 
@@ -62,11 +63,13 @@ type authService struct {
 func NewAuthService(
 	userRepo repository.UserRepository,
 	tokenMaker token.TokenMaker,
+	blacklist token.TokenBlacklist,
 	jwtExpiry time.Duration,
 ) AuthService {
 	return &authService{
 		userRepo:   userRepo,
 		tokenMaker: tokenMaker,
+		blacklist:  blacklist,
 		jwtExpiry:  jwtExpiry,
 	}
 }
@@ -172,12 +175,13 @@ func (s *authService) GetProfile(userID uint) (*UserProfile, error) {
 }
 
 // Logout handles user logout
-func (s *authService) Logout(userID uint) error {
-	// For JWT-based auth, the actual token invalidation happens on the client side
-	// Here we can:
-	// 1. Log the logout event
-	// 2. Implement token blacklisting if needed in the future
-	// 3. Clear any server-side session data
+func (s *authService) Logout(userID uint, tokenString string) error {
+	// Verify the token and get its expiration time
+	claims, err := s.tokenMaker.VerifyToken(tokenString)
+	if err != nil {
+		// Token is already invalid, nothing to blacklist
+		return nil
+	}
 
 	// Log the logout event
 	user, err := s.userRepo.FindByID(userID)
@@ -187,8 +191,15 @@ func (s *authService) Logout(userID uint) error {
 
 	log.Printf("User logged out: ID=%d, Email=%s", user.ID, user.Email)
 
-	// TODO: In the future, you could implement token blacklisting here
-	// by storing the token in a blacklist (Redis, database, etc.)
+	// Add token to blacklist with its expiration time
+	if s.blacklist != nil {
+		expiresAt := claims.ExpiresAt.Time
+		if err := s.blacklist.Add(tokenString, expiresAt); err != nil {
+			log.Printf("Failed to blacklist token: %v", err)
+			return err
+		}
+		log.Printf("Token blacklisted until %v", expiresAt)
+	}
 
 	return nil
 }

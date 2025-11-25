@@ -18,6 +18,7 @@ func New(
 	cfg *config.Config,
 	db *gorm.DB,
 	tokenMaker token.TokenMaker,
+	tokenBlacklist token.TokenBlacklist,
 	authHandler *handler.AuthHandler,
 	courseHandler *handler.CourseHandler,
 	lessonHandler *handler.LessonHandler,
@@ -65,8 +66,8 @@ func New(
 	{
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
-		auth.GET("/me", middleware.AuthMiddleware(tokenMaker), authHandler.GetProfile)
-		auth.POST("/logout", middleware.AuthMiddleware(tokenMaker), authHandler.Logout)
+		auth.GET("/me", middleware.AuthMiddleware(tokenMaker, tokenBlacklist), authHandler.GetProfile)
+		auth.POST("/logout", middleware.AuthMiddleware(tokenMaker, tokenBlacklist), authHandler.Logout)
 	}
 
 	// COURSE ROUTES
@@ -74,7 +75,7 @@ func New(
 	{
 		// CREATE COURSE (Teacher/Admin only)
 		courses.POST("/",
-			middleware.AuthMiddleware(tokenMaker),
+			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
 			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
 			courseHandler.Create,
 		)
@@ -87,20 +88,20 @@ func New(
 
 		// UPDATE COURSE (Teacher/Admin only)
 		courses.PUT("/:course_id",
-			middleware.AuthMiddleware(tokenMaker),
+			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
 			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
 			courseHandler.Update,
 		)
 
 		courses.PUT("/:course_id/publish",
-			middleware.AuthMiddleware(tokenMaker),
+			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
 			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
 			courseHandler.Publish,
 		)
 
 		// DELETE COURSE (Teacher/Admin only)
 		courses.DELETE("/:course_id",
-			middleware.AuthMiddleware(tokenMaker),
+			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
 			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
 			courseHandler.Delete,
 		)
@@ -108,12 +109,12 @@ func New(
 
 	lessons := v1.Group("/courses/:course_id/lessons")
 	{
-		lessons.POST("", middleware.AuthMiddleware(tokenMaker), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Create)
+		lessons.POST("", middleware.AuthMiddleware(tokenMaker, tokenBlacklist), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Create)
 		lessons.GET("", lessonHandler.ListByCourse)
 		lessons.GET("/:lesson_id", lessonHandler.Get)
-		lessons.PUT("/:lesson_id", middleware.AuthMiddleware(tokenMaker), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Update)
-		lessons.DELETE("/:lesson_id", middleware.AuthMiddleware(tokenMaker), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Delete)
-		lessons.PUT("/reorder", middleware.AuthMiddleware(tokenMaker), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Reorder)
+		lessons.PUT("/:lesson_id", middleware.AuthMiddleware(tokenMaker, tokenBlacklist), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Update)
+		lessons.DELETE("/:lesson_id", middleware.AuthMiddleware(tokenMaker, tokenBlacklist), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Delete)
+		lessons.PUT("/reorder", middleware.AuthMiddleware(tokenMaker, tokenBlacklist), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Reorder)
 	}
 
 	return r

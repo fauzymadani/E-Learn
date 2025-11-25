@@ -130,8 +130,15 @@ func (h *AuthHandler) Logout(ctx *gin.Context) {
 		return
 	}
 
-	// Log the logout event
-	err = h.authService.Logout(claims.UserID)
+	// Get the actual token string
+	tokenString, err := middleware.GetCurrentToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, ErrorResponse{Error: "failed to get token"})
+		return
+	}
+
+	// Blacklist the token
+	err = h.authService.Logout(claims.UserID, tokenString)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: "failed to logout"})
 		return
