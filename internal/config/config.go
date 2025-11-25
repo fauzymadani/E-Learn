@@ -11,9 +11,10 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	JWT      JWTConfig
+	Server           ServerConfig
+	Database         DatabaseConfig
+	JWT              JWTConfig
+	NotificationGRPC string
 }
 
 type ServerConfig struct {
@@ -70,6 +71,7 @@ func Load() (*Config, error) {
 			Secret:     getEnv("JWT_SECRET", ""),
 			Expiration: time.Duration(expHours) * time.Hour,
 		},
+		NotificationGRPC: getEnv("NOTIFICATION_GRPC_ADDR", "localhost:50051"),
 	}
 
 	// Validate required fields

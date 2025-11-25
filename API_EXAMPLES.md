@@ -261,3 +261,110 @@ Body (JSON):
 }
 ```
 
+---
+
+## Notifications
+
+### Get All Notifications
+```
+GET /api/v1/notifications
+```
+Authentication required.
+
+Query Parameters:
+- `page` (optional, default: 1) - Page number
+- `limit` (optional, default: 20) - Items per page
+- `unread_only` (optional, default: false) - Set to "true" to get only unread notifications
+
+Example:
+```bash
+curl -X GET "{{BASE_URL}}/v1/notifications?page=1&limit=20" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Response:
+```json
+{
+  "notifications": [
+    {
+      "id": 1,
+      "user_id": 7,
+      "type": "enrollment",
+      "title": "New Student Enrolled",
+      "message": "A student has enrolled in your course: Introduction to Programming",
+      "is_read": false,
+      "created_at": "2025-11-25T12:00:00Z"
+    },
+    {
+      "id": 2,
+      "user_id": 7,
+      "type": "completed",
+      "title": "Course Completed",
+      "message": "Congratulations! You have completed the course: Web Development",
+      "is_read": false,
+      "created_at": "2025-11-25T11:00:00Z"
+    }
+  ],
+  "total": 2,
+  "page": 1,
+  "limit": 20
+}
+```
+
+### Get Unread Count
+```
+GET /api/v1/notifications/unread-count
+```
+Authentication required.
+
+Example:
+```bash
+curl -X GET "{{BASE_URL}}/v1/notifications/unread-count" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Response:
+```json
+{
+  "unread_count": 5
+}
+```
+
+### Mark Notification as Read
+```
+PUT /api/v1/notifications/:id/read
+```
+Authentication required.
+
+Example:
+```bash
+curl -X PUT "{{BASE_URL}}/v1/notifications/1/read" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Response:
+```json
+{
+  "message": "notification marked as read"
+}
+```
+
+### Mark All Notifications as Read
+```
+PUT /api/v1/notifications/read-all
+```
+Authentication required.
+
+Example:
+```bash
+curl -X PUT "{{BASE_URL}}/v1/notifications/read-all" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Response:
+```json
+{
+  "message": "all notifications marked as read",
+  "count": 5
+}
+```

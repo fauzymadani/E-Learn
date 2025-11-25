@@ -1,26 +1,38 @@
 package service
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"log"
+	"time"
+
 	"elearning/internal/domain"
 	"elearning/internal/repository"
-	"errors"
+	"elearning/pkg/grpcclient"
 )
 
 type ProgressService struct {
 	progressRepo   repository.ProgressRepository
 	enrollmentRepo repository.EnrollmentRepository
 	lessonRepo     repository.LessonRepository
+	courseRepo     repository.CourseRepository
+	notifClient    *grpcclient.NotificationClient
 }
 
 func NewProgressService(
 	progressRepo repository.ProgressRepository,
 	enrollmentRepo repository.EnrollmentRepository,
 	lessonRepo repository.LessonRepository,
+	courseRepo repository.CourseRepository,
+	notifClient *grpcclient.NotificationClient,
 ) *ProgressService {
 	return &ProgressService{
 		progressRepo:   progressRepo,
 		enrollmentRepo: enrollmentRepo,
 		lessonRepo:     lessonRepo,
+		courseRepo:     courseRepo,
+		notifClient:    notifClient,
 	}
 }
 
@@ -61,6 +73,24 @@ func (s *ProgressService) MarkLessonCompleted(userID, lessonID uint) error {
 
 		if err := s.enrollmentRepo.Update(enrollment); err != nil {
 			return err
+		}
+
+		// Send course completion notification
+		if s.notifClient != nil && s.courseRepo != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+
+			course, err := s.courseRepo.FindByID(int64(lesson.CourseID))
+			if err == nil {
+				if err := s.notifClient.SendNotification(ctx,
+					int64(userID),
+					"completed",
+					"Course Completed",
+					fmt.Sprintf("Congratulations! You have completed the course: %s", course.Title),
+				); err != nil {
+					log.Printf("failed to send completion notification: %v", err)
+				}
+			}
 		}
 	}
 

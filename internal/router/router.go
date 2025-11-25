@@ -24,6 +24,7 @@ func New(
 	lessonHandler *handler.LessonHandler,
 	enrollmentHandler *handler.EnrollmentHandler,
 	progressHandler *handler.ProgressHandler,
+	notificationHandler *handler.NotificationHandler,
 ) *gin.Engine {
 
 	gin.SetMode(cfg.Server.GinMode)
@@ -174,6 +175,23 @@ func New(
 
 		// Get course progress
 		progress.GET("/courses/:course_id", progressHandler.GetCourseProgress)
+	}
+
+	// NOTIFICATION ROUTES
+	notifications := v1.Group("/notifications")
+	notifications.Use(middleware.AuthMiddleware(tokenMaker, tokenBlacklist))
+	{
+		// Get all notifications for the current user
+		notifications.GET("", notificationHandler.GetNotifications)
+
+		// Get unread count
+		notifications.GET("/unread-count", notificationHandler.GetUnreadCount)
+
+		// Mark specific notification as read
+		notifications.PUT("/:id/read", notificationHandler.MarkAsRead)
+
+		// Mark all notifications as read
+		notifications.PUT("/read-all", notificationHandler.MarkAllAsRead)
 	}
 
 	return r

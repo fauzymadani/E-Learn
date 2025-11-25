@@ -1,11 +1,15 @@
 package service
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"log"
+	"time"
 
 	"elearning/internal/domain"
 	"elearning/internal/repository"
+	"elearning/pkg/grpcclient"
 )
 
 var (
@@ -18,6 +22,7 @@ type EnrollmentService struct {
 	enrollmentRepo repository.EnrollmentRepository
 	courseRepo     repository.CourseRepository
 	userRepo       repository.UserRepository
+	notifClient    *grpcclient.NotificationClient
 }
 
 // NewEnrollmentService creates a new enrollment service
@@ -25,11 +30,13 @@ func NewEnrollmentService(
 	enrollmentRepo repository.EnrollmentRepository,
 	courseRepo repository.CourseRepository,
 	userRepo repository.UserRepository,
+	notifClient *grpcclient.NotificationClient,
 ) *EnrollmentService {
 	return &EnrollmentService{
 		enrollmentRepo: enrollmentRepo,
 		courseRepo:     courseRepo,
 		userRepo:       userRepo,
+		notifClient:    notifClient,
 	}
 }
 
@@ -75,6 +82,21 @@ func (s *EnrollmentService) Enroll(userID uint, courseID uint) (*domain.Enrollme
 	}
 
 	log.Printf("User %d enrolled in course %d", userID, courseID)
+
+	// Send notification to teacher
+	if s.notifClient != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		if err := s.notifClient.SendNotification(ctx,
+			course.TeacherID,
+			"enrollment",
+			"New Student Enrolled",
+			fmt.Sprintf("A student has enrolled in your course: %s", course.Title),
+		); err != nil {
+			log.Printf("failed to send enrollment notification: %v", err)
+		}
+	}
 
 	// Reload with relationships
 	return s.enrollmentRepo.FindByID(enrollment.ID)

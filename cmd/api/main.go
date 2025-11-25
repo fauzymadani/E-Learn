@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"elearning/pkg/grpcclient"
 	"errors"
 	"log"
 	"net/http"
@@ -38,6 +39,14 @@ func main() {
 	tokenBlacklist := token.NewInMemoryBlacklist(1 * time.Hour)
 	log.Println("Token blacklist initialized")
 
+	// Initialize notification client (optional, don't fail if it's unavailable)
+	var notifClient *grpcclient.NotificationClient
+	notifClient, err = grpcclient.NewNotificationClient(cfg.NotificationGRPC)
+	if err != nil {
+		log.Printf("Warning: notification service not available: %v", err)
+		notifClient = nil
+	}
+
 	userRepo := repository.NewUserRepository(db)
 	authService := service.NewAuthService(userRepo, tokenMaker, tokenBlacklist, cfg.JWT.Expiration)
 	authHandler := handler.NewAuthHandler(authService)
@@ -51,14 +60,16 @@ func main() {
 	lessonHandler := handler.NewLessonHandler(lessonService)
 
 	enrollmentRepo := repository.NewEnrollmentRepository(db)
-	enrollmentService := service.NewEnrollmentService(enrollmentRepo, courseRepo, userRepo)
+	enrollmentService := service.NewEnrollmentService(enrollmentRepo, courseRepo, userRepo, notifClient)
 	enrollmentHandler := handler.NewEnrollmentHandler(enrollmentService)
 
 	progressRepo := repository.NewProgressRepository(db)
-	progressService := service.NewProgressService(progressRepo, enrollmentRepo, lessonRepo)
+	progressService := service.NewProgressService(progressRepo, enrollmentRepo, lessonRepo, courseRepo, notifClient)
 	progressHandler := handler.NewProgressHandler(progressService)
 
-	r := router.New(cfg, db, tokenMaker, tokenBlacklist, authHandler, courseHandler, lessonHandler, enrollmentHandler, progressHandler)
+	notificationHandler := handler.NewNotificationHandler(notifClient)
+
+	r := router.New(cfg, db, tokenMaker, tokenBlacklist, authHandler, courseHandler, lessonHandler, enrollmentHandler, progressHandler, notificationHandler)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,
@@ -87,6 +98,13 @@ func main() {
 	}
 
 	_ = config.CloseDatabase(db)
+
+	// Close notification client
+	if notifClient != nil {
+		if err := notifClient.Close(); err != nil {
+			log.Printf("failed to close notification client: %v", err)
+		}
+	}
 
 	log.Println("server exited")
 }

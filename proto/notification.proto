@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package notification;
+
+option go_package = "notification-service/proto";
+
+service NotificationService {
+  rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
+  rpc GetNotifications(GetNotificationsRequest) returns (GetNotificationsResponse);
+  rpc MarkAsRead(MarkAsReadRequest) returns (MarkAsReadResponse);
+  rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
+  rpc MarkAllAsRead(MarkAllAsReadRequest) returns (MarkAllAsReadResponse);
+}
+
+message SendNotificationRequest {
+  int64 user_id = 1;
+  string type = 2;
+  string title = 3;
+  string message = 4;
+}
+
+message SendNotificationResponse {
+  bool success = 1;
+  string message = 2;
+  int64 notification_id = 3;
+}
+
+message GetNotificationsRequest {
+  int64 user_id = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  bool unread_only = 4;
+}
+
+message Notification {
+  int64 id = 1;
+  int64 user_id = 2;
+  string type = 3;
+  string title = 4;
+  string message = 5;
+  bool is_read = 6;
+  string created_at = 7;
+}
+
+message GetNotificationsResponse {
+  repeated Notification notifications = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message MarkAsReadRequest {
+  int64 notification_id = 1;
+  int64 user_id = 2;
+}
+
+message MarkAsReadResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetUnreadCountRequest {
+  int64 user_id = 1;
+}
+
+message GetUnreadCountResponse {
+  int64 count = 1;
+}
+
+message MarkAllAsReadRequest {
+  int64 user_id = 1;
+}
+
+message MarkAllAsReadResponse {
+  bool success = 1;
+  int32 count = 2;
+}
