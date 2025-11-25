@@ -1,5 +1,106 @@
 # API Examples
 
+## Authentication Endpoints
+
+### Register
+```
+POST /api/v1/auth/register
+```
+
+**Request Body (JSON):**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123",
+  "role": "student"
+}
+```
+
+**Roles:** `student`, `teacher`, `admin`
+
+**Success Response (201):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "student"
+  }
+}
+```
+
+### Login
+```
+POST /api/v1/auth/login
+```
+
+**Request Body (JSON):**
+```json
+{
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "student"
+  }
+}
+```
+
+### Get Profile
+```
+GET /api/v1/auth/me
+```
+
+**Headers:**
+- `Authorization: Bearer YOUR_TOKEN_HERE`
+
+**Success Response (200):**
+```json
+{
+  "id": 1,
+  "name": "John Doe",
+  "email": "john@example.com",
+  "role": "student"
+}
+```
+
+### Logout
+```
+POST /api/v1/auth/logout
+```
+
+**Headers:**
+- `Authorization: Bearer YOUR_TOKEN_HERE`
+
+**Success Response (200):**
+```json
+{
+  "message": "successfully logged out"
+}
+```
+
+**Example with cURL:**
+```bash
+curl -X POST "http://localhost:8080/api/v1/auth/logout" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+```
+
+**Note:** For JWT-based authentication, the actual token invalidation happens on the client side by deleting/clearing the stored token. The logout endpoint logs the logout event on the server and can be extended to implement token blacklisting if needed.
+
+---
+
 ## Create Lesson
 
 ### Endpoint

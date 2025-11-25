@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"log"
 	"time"
 
 	"elearning/internal/domain"
@@ -48,6 +49,7 @@ type AuthService interface {
 	Register(req RegisterRequest) (*AuthResponse, error)
 	Login(req LoginRequest) (*AuthResponse, error)
 	GetProfile(userID uint) (*UserProfile, error)
+	Logout(userID uint) error
 }
 
 type authService struct {
@@ -167,4 +169,26 @@ func (s *authService) GetProfile(userID uint) (*UserProfile, error) {
 		Email: user.Email,
 		Role:  user.Role,
 	}, nil
+}
+
+// Logout handles user logout
+func (s *authService) Logout(userID uint) error {
+	// For JWT-based auth, the actual token invalidation happens on the client side
+	// Here we can:
+	// 1. Log the logout event
+	// 2. Implement token blacklisting if needed in the future
+	// 3. Clear any server-side session data
+
+	// Log the logout event
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("User logged out: ID=%d, Email=%s", user.ID, user.Email)
+
+	// TODO: In the future, you could implement token blacklisting here
+	// by storing the token in a blacklist (Redis, database, etc.)
+
+	return nil
 }

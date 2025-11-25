@@ -114,7 +114,40 @@ func (h *AuthHandler) GetProfile(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, profile)
 }
 
+// Logout handles user logout
+// @Summary Logout user
+// @Description Logout the current authenticated user
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} LogoutResponse
+// @Failure 401 {object} ErrorResponse
+// @Router /auth/logout [post]
+func (h *AuthHandler) Logout(ctx *gin.Context) {
+	claims, err := middleware.GetCurrentUser(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Log the logout event
+	err = h.authService.Logout(claims.UserID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: "failed to logout"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, LogoutResponse{
+		Message: "successfully logged out",
+	})
+}
+
 // ErrorResponse represents error response
 type ErrorResponse struct {
 	Error string `json:"error"`
+}
+
+// LogoutResponse represents logout response
+type LogoutResponse struct {
+	Message string `json:"message"`
 }

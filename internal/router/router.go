@@ -66,6 +66,7 @@ func New(
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
 		auth.GET("/me", middleware.AuthMiddleware(tokenMaker), authHandler.GetProfile)
+		auth.POST("/logout", middleware.AuthMiddleware(tokenMaker), authHandler.Logout)
 	}
 
 	// COURSE ROUTES
