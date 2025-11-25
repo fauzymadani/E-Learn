@@ -54,7 +54,11 @@ func main() {
 	enrollmentService := service.NewEnrollmentService(enrollmentRepo, courseRepo, userRepo)
 	enrollmentHandler := handler.NewEnrollmentHandler(enrollmentService)
 
-	r := router.New(cfg, db, tokenMaker, tokenBlacklist, authHandler, courseHandler, lessonHandler, enrollmentHandler)
+	progressRepo := repository.NewProgressRepository(db)
+	progressService := service.NewProgressService(progressRepo, enrollmentRepo, lessonRepo)
+	progressHandler := handler.NewProgressHandler(progressService)
+
+	r := router.New(cfg, db, tokenMaker, tokenBlacklist, authHandler, courseHandler, lessonHandler, enrollmentHandler, progressHandler)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,

@@ -23,6 +23,7 @@ func New(
 	courseHandler *handler.CourseHandler,
 	lessonHandler *handler.LessonHandler,
 	enrollmentHandler *handler.EnrollmentHandler,
+	progressHandler *handler.ProgressHandler,
 ) *gin.Engine {
 
 	gin.SetMode(cfg.Server.GinMode)
@@ -157,6 +158,22 @@ func New(
 			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
 			enrollmentHandler.GetCourseEnrollments,
 		)
+	}
+
+	progress := v1.Group("/progress")
+	progress.Use(middleware.AuthMiddleware(tokenMaker, tokenBlacklist))
+	{
+		// Mark lesson as completed
+		progress.POST("/lessons/:lesson_id/complete", progressHandler.MarkCompleted)
+
+		// Unmark lesson
+		progress.DELETE("/lessons/:lesson_id/complete", progressHandler.UnmarkCompleted)
+
+		// Get lesson progress
+		progress.GET("/lessons/:lesson_id", progressHandler.GetLessonProgress)
+
+		// Get course progress
+		progress.GET("/courses/:course_id", progressHandler.GetCourseProgress)
 	}
 
 	return r
