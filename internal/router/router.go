@@ -19,7 +19,8 @@ func New(
 	db *gorm.DB,
 	tokenMaker token.TokenMaker,
 	authHandler *handler.AuthHandler,
-	courseHandler *handler.CourseHandler, // ADD THIS
+	courseHandler *handler.CourseHandler,
+	lessonHandler *handler.LessonHandler,
 ) *gin.Engine {
 
 	gin.SetMode(cfg.Server.GinMode)
@@ -30,6 +31,9 @@ func New(
 	r.Use(gin.Recovery())
 	r.Use(middleware.Logger())
 	r.Use(middleware.CORS())
+
+	// Serve static files (uploaded videos and PDFs)
+	r.Static("/uploads", "./uploads")
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
@@ -78,27 +82,37 @@ func New(
 		courses.GET("/", courseHandler.GetList)
 
 		// GET COURSE BY ID (public)
-		courses.GET("/:id", courseHandler.Get)
+		courses.GET("/:course_id", courseHandler.Get)
 
 		// UPDATE COURSE (Teacher/Admin only)
-		courses.PUT("/:id",
+		courses.PUT("/:course_id",
 			middleware.AuthMiddleware(tokenMaker),
 			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
 			courseHandler.Update,
 		)
 
-		courses.PUT("/:id/publish",
+		courses.PUT("/:course_id/publish",
 			middleware.AuthMiddleware(tokenMaker),
 			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
 			courseHandler.Publish,
 		)
 
 		// DELETE COURSE (Teacher/Admin only)
-		courses.DELETE("/:id",
+		courses.DELETE("/:course_id",
 			middleware.AuthMiddleware(tokenMaker),
 			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
 			courseHandler.Delete,
 		)
+	}
+
+	lessons := v1.Group("/courses/:course_id/lessons")
+	{
+		lessons.POST("", middleware.AuthMiddleware(tokenMaker), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Create)
+		lessons.GET("", lessonHandler.ListByCourse)
+		lessons.GET("/:lesson_id", lessonHandler.Get)
+		lessons.PUT("/:lesson_id", middleware.AuthMiddleware(tokenMaker), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Update)
+		lessons.DELETE("/:lesson_id", middleware.AuthMiddleware(tokenMaker), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Delete)
+		lessons.PUT("/reorder", middleware.AuthMiddleware(tokenMaker), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Reorder)
 	}
 
 	return r

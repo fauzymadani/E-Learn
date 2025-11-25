@@ -72,7 +72,7 @@ func (h *CourseHandler) GetList(c *gin.Context) {
 }
 
 func (h *CourseHandler) Get(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, _ := strconv.ParseInt(c.Param("course_id"), 10, 64)
 	course, err := h.service.GetByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "course not found"})
@@ -82,7 +82,7 @@ func (h *CourseHandler) Get(c *gin.Context) {
 }
 
 func (h *CourseHandler) Update(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, _ := strconv.ParseInt(c.Param("course_id"), 10, 64)
 	course, err := h.service.GetByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "course not found"})
@@ -115,7 +115,7 @@ func (h *CourseHandler) Update(c *gin.Context) {
 }
 
 func (h *CourseHandler) Delete(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, _ := strconv.ParseInt(c.Param("course_id"), 10, 64)
 	if err := h.service.Delete(id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete course"})
 		return
@@ -124,7 +124,7 @@ func (h *CourseHandler) Delete(c *gin.Context) {
 }
 
 func (h *CourseHandler) Publish(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, _ := strconv.ParseInt(c.Param("course_id"), 10, 64)
 
 	var body struct {
 		Publish bool `json:"publish"`
