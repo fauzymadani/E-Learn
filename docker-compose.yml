@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elearning-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    # Use host network to access localhost database
+    network_mode: "host"
+    environment:
+      # Database connection (connects to host PostgreSQL)
+      - DB_HOST=localhost
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=
+      - DB_NAME=elearning
+      - DB_SSLMODE=disable
+      
+      # Server configuration
+      - SERVER_PORT=8080
+      - GIN_MODE=release
+      
+      # JWT configuration
+      - JWT_SECRET=${JWT_SECRET:HMNKnj6wI2fYmtDJ40BxSZL7yYcdvt4JYD3mQ5Tfnoc=}
+      - JWT_EXPIRATION=24h
+      
+      # Notification gRPC (adjust if you have notification service)
+      - NOTIFICATION_GRPC_ADDRESS=localhost:50051
+      
+      # Google Cloud Storage (set to false if not using)
+      - GCS_ENABLED=false
+      - GCS_BUCKET_NAME=${GCS_BUCKET_NAME:-}
+      
+    volumes:
+      # Mount uploads directory to persist files
+      - ./uploads:/app/uploads
+      # Mount .env file (optional)
+      - ./.env:/app/.env:ro
+    depends_on: []
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
