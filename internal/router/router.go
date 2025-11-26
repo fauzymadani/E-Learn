@@ -25,6 +25,7 @@ func New(
 	enrollmentHandler *handler.EnrollmentHandler,
 	progressHandler *handler.ProgressHandler,
 	notificationHandler *handler.NotificationHandler,
+	userHandler *handler.UserHandler,
 ) *gin.Engine {
 
 	gin.SetMode(cfg.Server.GinMode)
@@ -192,6 +193,25 @@ func New(
 
 		// Mark all notifications as read
 		notifications.PUT("/read-all", notificationHandler.MarkAllAsRead)
+	}
+
+	users := v1.Group("/users")
+	users.Use(middleware.AuthMiddleware(tokenMaker, tokenBlacklist))
+	{
+		// Get user profile
+		users.GET("/profile", userHandler.GetProfile)
+
+		// Edit user profile
+		users.PUT("/profile", userHandler.UpdateProfile)
+
+		// change user password
+		users.PUT("/change-password", userHandler.ChangePassword)
+
+		// Get courses the user is enrolled in (students)
+		users.GET("/enrolled-courses", userHandler.GetEnrolledCourses)
+
+		// Get courses the user is teaching (teachers)
+		users.GET("/taught-courses", userHandler.GetTaughtCourses)
 	}
 
 	return r

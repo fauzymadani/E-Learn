@@ -69,7 +69,10 @@ func main() {
 
 	notificationHandler := handler.NewNotificationHandler(notifClient)
 
-	r := router.New(cfg, db, tokenMaker, tokenBlacklist, authHandler, courseHandler, lessonHandler, enrollmentHandler, progressHandler, notificationHandler)
+	userService := service.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userService, enrollmentRepo, courseRepo)
+
+	r := router.New(cfg, db, tokenMaker, tokenBlacklist, authHandler, courseHandler, lessonHandler, enrollmentHandler, progressHandler, notificationHandler, userHandler)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,

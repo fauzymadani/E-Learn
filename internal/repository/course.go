@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"elearning/internal/domain"
 
 	"gorm.io/gorm"
@@ -12,6 +13,7 @@ type CourseRepository interface {
 	FindAll(filter map[string]interface{}) ([]domain.Course, error)
 	Update(course *domain.Course) error
 	Delete(id int64) error
+	GetByInstructorID(ctx context.Context, instructorID uint, page, limit int) ([]domain.Course, int64, error)
 }
 
 type courseRepository struct {
@@ -58,4 +60,26 @@ func (r *courseRepository) Update(course *domain.Course) error {
 
 func (r *courseRepository) Delete(id int64) error {
 	return r.db.Delete(&domain.Course{}, id).Error
+}
+
+func (r *courseRepository) GetByInstructorID(ctx context.Context, instructorID uint, page, limit int) ([]domain.Course, int64, error) {
+	var courses []domain.Course
+	var total int64
+	offset := (page - 1) * limit
+
+	if err := r.db.WithContext(ctx).Model(&domain.Course{}).
+		Where("teacher_id = ?", instructorID).
+		Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	err := r.db.WithContext(ctx).
+		Where("teacher_id = ?", instructorID).
+		Preload("Teacher").
+		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&courses).Error
+
+	return courses, total, err
 }
