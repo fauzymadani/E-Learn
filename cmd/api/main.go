@@ -86,6 +86,10 @@ func main() {
 	}
 	userHandler := handler.NewUserHandler(userService, enrollmentRepo, courseRepo, gcsUploader, cfg.GCS.Enabled)
 
+	dashboardRepo := repository.NewDashboardRepository(db)
+	dashboardService := service.NewDashboardService(dashboardRepo, notifClient, userRepo)
+	dashboardHandler := handler.NewDashboardHandler(dashboardService)
+
 	r := router.New(
 		cfg,
 		db,
@@ -97,7 +101,8 @@ func main() {
 		enrollmentHandler,
 		progressHandler,
 		notificationHandler,
-		userHandler)
+		userHandler,
+		dashboardHandler)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,

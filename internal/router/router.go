@@ -26,6 +26,7 @@ func New(
 	progressHandler *handler.ProgressHandler,
 	notificationHandler *handler.NotificationHandler,
 	userHandler *handler.UserHandler,
+	dashboardHandler *handler.DashboardHandler,
 ) *gin.Engine {
 
 	gin.SetMode(cfg.Server.GinMode)
@@ -39,6 +40,14 @@ func New(
 
 	// Serve static files (uploaded videos and PDFs)
 	r.Static("/uploads", "./uploads")
+
+	// Handle 404 - Not Found
+	r.NoRoute(func(c *gin.Context) {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "endpoint not found",
+			"path":  c.Request.URL.Path,
+		})
+	})
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
@@ -207,11 +216,40 @@ func New(
 		// change user password
 		users.PUT("/change-password", userHandler.ChangePassword)
 
-		// Get courses the user is enrolled in (students)
-		users.GET("/enrolled-courses", userHandler.GetEnrolledCourses)
+		// Get courses the user is enrolled in (students and admins)
+		users.GET("/enrolled-courses",
+			middleware.RequireRole(domain.RoleStudent, domain.RoleAdmin),
+			userHandler.GetEnrolledCourses,
+		)
 
-		// Get courses the user is teaching (teachers)
-		users.GET("/taught-courses", userHandler.GetTaughtCourses)
+		// Get courses the user is teaching (teachers and admins)
+		users.GET("/taught-courses",
+			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
+			userHandler.GetTaughtCourses,
+		)
+	}
+
+	// DASHBOARD ROUTES
+	dashboard := v1.Group("/dashboard")
+	dashboard.Use(middleware.AuthMiddleware(tokenMaker, tokenBlacklist))
+	{
+		// Student dashboard
+		dashboard.GET("/student",
+			middleware.RequireRole(domain.RoleStudent),
+			dashboardHandler.GetStudentDashboard,
+		)
+
+		// Teacher dashboard
+		dashboard.GET("/teacher",
+			middleware.RequireRole(domain.RoleTeacher),
+			dashboardHandler.GetTeacherDashboard,
+		)
+
+		// Admin dashboard
+		dashboard.GET("/admin",
+			middleware.RequireRole(domain.RoleAdmin),
+			dashboardHandler.GetAdminDashboard,
+		)
 	}
 
 	return r

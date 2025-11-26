@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"elearning/internal/domain"
 	"elearning/internal/middleware"
 	"elearning/internal/repository"
 	"elearning/internal/service"
@@ -218,11 +217,6 @@ func (h *UserHandler) GetEnrolledCourses(c *gin.Context) {
 		return
 	}
 
-	if claims.Role != string(domain.RoleStudent) && claims.Role != string(domain.RoleAdmin) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only students can view enrolled courses"})
-		return
-	}
-
 	enrollments, err := h.enrollmentRepo.FindByUser(claims.UserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch enrolled courses"})
@@ -239,11 +233,6 @@ func (h *UserHandler) GetTaughtCourses(c *gin.Context) {
 	claims, err := middleware.GetCurrentUser(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return
-	}
-
-	if claims.Role != string(domain.RoleTeacher) && claims.Role != string(domain.RoleAdmin) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only teachers can view taught courses"})
 		return
 	}
 
