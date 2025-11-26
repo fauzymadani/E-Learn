@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"bytes"
 	"elearning/internal/domain"
 	"elearning/internal/middleware"
 	"elearning/internal/repository"
 	"elearning/internal/service"
+	"elearning/pkg/storage"
 	"errors"
 	"fmt"
 	"image"
@@ -25,17 +27,23 @@ type UserHandler struct {
 	userService    service.UserService
 	enrollmentRepo repository.EnrollmentRepository
 	courseRepo     repository.CourseRepository
+	gcsUploader    *storage.GCSUploader
+	gcsEnabled     bool
 }
 
 func NewUserHandler(
 	userService service.UserService,
 	enrollmentRepo repository.EnrollmentRepository,
 	courseRepo repository.CourseRepository,
+	gcsUploader *storage.GCSUploader,
+	gcsEnabled bool,
 ) *UserHandler {
 	return &UserHandler{
 		userService:    userService,
 		enrollmentRepo: enrollmentRepo,
 		courseRepo:     courseRepo,
+		gcsUploader:    gcsUploader,
+		gcsEnabled:     gcsEnabled,
 	}
 }
 
@@ -82,19 +90,21 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 
 		user, err := h.userService.GetProfile(claims.UserID)
 		if err == nil && user.Avatar != nil && *user.Avatar != "" {
-			oldPath := "." + *user.Avatar
-			if _, err := os.Stat(oldPath); err == nil {
-				err := os.Remove(oldPath)
+			if h.gcsEnabled {
+				filename := filepath.Base(*user.Avatar)
+				err := h.gcsUploader.Delete(c.Request.Context(), filename)
 				if err != nil {
 					return
 				}
+			} else {
+				oldPath := "." + *user.Avatar
+				if _, err := os.Stat(oldPath); err == nil {
+					err := os.Remove(oldPath)
+					if err != nil {
+						return
+					}
+				}
 			}
-		}
-
-		uploadDir := "./uploads/avatars"
-		if err := os.MkdirAll(uploadDir, 0755); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
-			return
 		}
 
 		src, err := file.Open()
@@ -105,7 +115,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		defer func(src multipart.File) {
 			err := src.Close()
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to close file"})
 			}
 		}(src)
 
@@ -117,28 +127,49 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 
 		img = imaging.Fit(img, 500, 500, imaging.Lanczos)
 
-		filename := fmt.Sprintf("%d_%d.jpg", claims.UserID, time.Now().Unix())
-		savePath := filepath.Join(uploadDir, filename)
+		filename := fmt.Sprintf("avatars/%d_%d.jpg", claims.UserID, time.Now().Unix())
 
-		out, err := os.Create(savePath)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
-			return
-		}
-		defer func(out *os.File) {
-			err := out.Close()
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if h.gcsEnabled {
+			buf := new(bytes.Buffer)
+			if err := jpeg.Encode(buf, img, &jpeg.Options{Quality: 85}); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to compress image"})
+				return
 			}
-		}(out)
 
-		if err := jpeg.Encode(out, img, &jpeg.Options{Quality: 85}); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to compress image"})
-			return
+			url, err := h.gcsUploader.Upload(c.Request.Context(), buf, filename)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload to cloud"})
+				return
+			}
+			avatarURL = &url
+		} else {
+			uploadDir := "./uploads/avatars"
+			if err := os.MkdirAll(uploadDir, 0755); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+				return
+			}
+
+			savePath := filepath.Join(uploadDir, filepath.Base(filename))
+			out, err := os.Create(savePath)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+				return
+			}
+			defer func(out *os.File) {
+				err := out.Close()
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to close file"})
+				}
+			}(out)
+
+			if err := jpeg.Encode(out, img, &jpeg.Options{Quality: 85}); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to compress image"})
+				return
+			}
+
+			url := fmt.Sprintf("/uploads/avatars/%s", filepath.Base(filename))
+			avatarURL = &url
 		}
-
-		url := fmt.Sprintf("/uploads/avatars/%s", filename)
-		avatarURL = &url
 	}
 
 	if err := h.userService.UpdateProfile(claims.UserID, name, avatarURL); err != nil {

@@ -15,6 +15,7 @@ type Config struct {
 	Database         DatabaseConfig
 	JWT              JWTConfig
 	NotificationGRPC string
+	GCS              GCSConfig
 }
 
 type ServerConfig struct {
@@ -37,9 +38,13 @@ type JWTConfig struct {
 	Expiration time.Duration
 }
 
+type GCSConfig struct {
+	BucketName string
+	Enabled    bool
+}
+
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
-	// Load .env file if exists
 	err := godotenv.Load()
 	if err != nil {
 		log.Printf("WARNING: Error loading .env file: %v", err)
@@ -47,7 +52,6 @@ func Load() (*Config, error) {
 		log.Println("SUCCESS: .env file loaded successfully")
 	}
 
-	// Parse JWT expiration hours
 	expHours, err := strconv.Atoi(getEnv("JWT_EXPIRATION_HOURS", "24"))
 	if err != nil {
 		return nil, fmt.Errorf("invalid JWT_EXPIRATION_HOURS: %w", err)
@@ -72,20 +76,27 @@ func Load() (*Config, error) {
 			Expiration: time.Duration(expHours) * time.Hour,
 		},
 		NotificationGRPC: getEnv("NOTIFICATION_GRPC_ADDR", "localhost:50051"),
+		GCS: GCSConfig{
+			BucketName: getEnv("GCS_BUCKET_NAME", ""),
+			Enabled:    getEnv("GCS_ENABLED", "false") == "true",
+		},
 	}
 
-	// Validate required fields
 	if cfg.JWT.Secret == "" {
 		return nil, fmt.Errorf("JWT_SECRET is required")
 	}
 
-	// Print loaded config for debugging
 	log.Println("DEBUG: Loaded Database Config:")
 	log.Printf("  DB_HOST: %s", cfg.Database.Host)
 	log.Printf("  DB_PORT: %s", cfg.Database.Port)
 	log.Printf("  DB_USER: %s", cfg.Database.User)
 	log.Printf("  DB_NAME: %s", cfg.Database.DBName)
 	log.Printf("  DB_SSLMODE: %s", cfg.Database.SSLMode)
+
+	if cfg.GCS.Enabled {
+		log.Printf("  GCS_ENABLED: true")
+		log.Printf("  GCS_BUCKET: %s", cfg.GCS.BucketName)
+	}
 
 	return cfg, nil
 }

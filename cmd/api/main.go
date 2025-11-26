@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"elearning/pkg/grpcclient"
+	"elearning/pkg/storage"
 	"errors"
 	"log"
 	"net/http"
@@ -70,9 +71,33 @@ func main() {
 	notificationHandler := handler.NewNotificationHandler(notifClient)
 
 	userService := service.NewUserService(userRepo)
-	userHandler := handler.NewUserHandler(userService, enrollmentRepo, courseRepo)
+	var gcsUploader *storage.GCSUploader
+	if cfg.GCS.Enabled {
+		gcsUploader, err = storage.NewGCSUploader(cfg.GCS.BucketName)
+		if err != nil {
+			log.Fatal("Failed to init GCS:", err)
+		}
+		defer func(gcsUploader *storage.GCSUploader) {
+			err := gcsUploader.Close()
+			if err != nil {
+				log.Printf("Failed to close GCS uploader: %v", err)
+			}
+		}(gcsUploader)
+	}
+	userHandler := handler.NewUserHandler(userService, enrollmentRepo, courseRepo, gcsUploader, cfg.GCS.Enabled)
 
-	r := router.New(cfg, db, tokenMaker, tokenBlacklist, authHandler, courseHandler, lessonHandler, enrollmentHandler, progressHandler, notificationHandler, userHandler)
+	r := router.New(
+		cfg,
+		db,
+		tokenMaker,
+		tokenBlacklist,
+		authHandler,
+		courseHandler,
+		lessonHandler,
+		enrollmentHandler,
+		progressHandler,
+		notificationHandler,
+		userHandler)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,
