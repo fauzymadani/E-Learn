@@ -1,8 +1,15 @@
 package handler
 
 import (
+	"elearning/internal/domain"
+	"elearning/internal/middleware"
+	"elearning/internal/repository"
+	"elearning/internal/service"
 	"errors"
 	"fmt"
+	"image"
+	"image/jpeg"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -10,11 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"elearning/internal/domain"
-	"elearning/internal/middleware"
-	"elearning/internal/repository"
-	"elearning/internal/service"
-
+	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
 )
 
@@ -49,33 +52,7 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	response := gin.H{
-		"id":         user.ID,
-		"name":       user.Name,
-		"email":      user.Email,
-		"role":       user.Role,
-		"avatar":     user.Avatar,
-		"created_at": user.CreatedAt,
-		"updated_at": user.UpdatedAt,
-	}
-
-	if claims.Role == string(domain.RoleStudent) {
-		enrollments, _ := h.enrollmentRepo.FindByUser(claims.UserID)
-		response["enrolled_courses_count"] = len(enrollments)
-	}
-
-	if claims.Role == string(domain.RoleTeacher) {
-		courses, total, _ := h.courseRepo.GetByInstructorID(c.Request.Context(), claims.UserID, 1, 1)
-		_ = courses
-		response["taught_courses_count"] = total
-	}
-
-	c.JSON(http.StatusOK, response)
-}
-
-type UpdateProfileRequest struct {
-	Name   string  `json:"name"`
-	Avatar *string `json:"avatar"`
+	c.JSON(http.StatusOK, user)
 }
 
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
@@ -90,11 +67,11 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 
 	file, err := c.FormFile("avatar")
 	if err == nil {
-		allowedExts := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".gif": true}
+		allowedExts := map[string]bool{".jpg": true, ".jpeg": true, ".png": true}
 		ext := strings.ToLower(filepath.Ext(file.Filename))
 
 		if !allowedExts[ext] {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Only image files allowed (jpg, jpeg, png, gif)"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Only JPG, JPEG, PNG allowed"})
 			return
 		}
 
@@ -103,17 +80,60 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 			return
 		}
 
+		user, err := h.userService.GetProfile(claims.UserID)
+		if err == nil && user.Avatar != nil && *user.Avatar != "" {
+			oldPath := "." + *user.Avatar
+			if _, err := os.Stat(oldPath); err == nil {
+				err := os.Remove(oldPath)
+				if err != nil {
+					return
+				}
+			}
+		}
+
 		uploadDir := "./uploads/avatars"
 		if err := os.MkdirAll(uploadDir, 0755); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
 			return
 		}
 
-		filename := fmt.Sprintf("%d_%d%s", claims.UserID, time.Now().Unix(), ext)
-		join := filepath.Join(uploadDir, filename)
+		src, err := file.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
+			return
+		}
+		defer func(src multipart.File) {
+			err := src.Close()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			}
+		}(src)
 
-		if err := c.SaveUploadedFile(file, join); err != nil {
+		img, _, err := image.Decode(src)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid image file"})
+			return
+		}
+
+		img = imaging.Fit(img, 500, 500, imaging.Lanczos)
+
+		filename := fmt.Sprintf("%d_%d.jpg", claims.UserID, time.Now().Unix())
+		savePath := filepath.Join(uploadDir, filename)
+
+		out, err := os.Create(savePath)
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+			return
+		}
+		defer func(out *os.File) {
+			err := out.Close()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			}
+		}(out)
+
+		if err := jpeg.Encode(out, img, &jpeg.Options{Quality: 85}); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to compress image"})
 			return
 		}
 
