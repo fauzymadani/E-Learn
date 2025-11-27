@@ -218,6 +218,14 @@ func (h *LessonHandler) Update(c *gin.Context) {
 				return
 			}
 
+			// Delete old video file if exists
+			if lesson.VideoURL != "" {
+				oldVideoPath := strings.TrimPrefix(lesson.VideoURL, "/")
+				if err := os.Remove(oldVideoPath); err != nil && !os.IsNotExist(err) {
+					log.Printf("Failed to delete old video file %s: %v", oldVideoPath, err)
+				}
+			}
+
 			filename := fmt.Sprintf("videos/%d_%d%s", lesson.CourseID, time.Now().Unix(), ext)
 			fullPath := "uploads/" + filename
 			if err := c.SaveUploadedFile(videoFile, fullPath); err != nil {
@@ -245,6 +253,14 @@ func (h *LessonHandler) Update(c *gin.Context) {
 				log.Printf("Failed to create files directory: %v", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create upload directory"})
 				return
+			}
+
+			// Delete old PDF file if exists
+			if lesson.FileURL != "" {
+				oldFilePath := strings.TrimPrefix(lesson.FileURL, "/")
+				if err := os.Remove(oldFilePath); err != nil && !os.IsNotExist(err) {
+					log.Printf("Failed to delete old PDF file %s: %v", oldFilePath, err)
+				}
 			}
 
 			filename := fmt.Sprintf("files/%d_%d%s", lesson.CourseID, time.Now().Unix(), ext)

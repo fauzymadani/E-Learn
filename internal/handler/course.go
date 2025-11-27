@@ -127,7 +127,8 @@ func (h *CourseHandler) Publish(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("course_id"), 10, 64)
 
 	var body struct {
-		Publish bool `json:"publish"`
+		IsPublished *bool `json:"is_published"`
+		Publish     *bool `json:"publish"`
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -135,10 +136,24 @@ func (h *CourseHandler) Publish(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Publish(id, body.Publish); err != nil {
+	// Accept both 'publish' and 'is_published' field names
+	var publishState bool
+	if body.Publish != nil {
+		publishState = *body.Publish
+	} else if body.IsPublished != nil {
+		publishState = *body.IsPublished
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "publish or is_published field is required"})
+		return
+	}
+
+	if err := h.service.Publish(id, publishState); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update publish state"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"published": body.Publish})
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "course publish status updated",
+		"is_published": publishState,
+	})
 }

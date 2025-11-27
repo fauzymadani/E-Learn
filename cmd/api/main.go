@@ -52,13 +52,13 @@ func main() {
 	authService := service.NewAuthService(userRepo, tokenMaker, tokenBlacklist, cfg.JWT.Expiration)
 	authHandler := handler.NewAuthHandler(authService)
 
-	courseRepo := repository.NewCourseRepository(db)
-	courseService := service.NewCourseService(courseRepo)
-	courseHandler := handler.NewCourseHandler(courseService)
-
 	lessonRepo := repository.NewLessonRepository(db)
 	lessonService := service.NewLessonService(lessonRepo)
 	lessonHandler := handler.NewLessonHandler(lessonService)
+
+	courseRepo := repository.NewCourseRepository(db)
+	courseService := service.NewCourseService(courseRepo, lessonRepo)
+	courseHandler := handler.NewCourseHandler(courseService)
 
 	enrollmentRepo := repository.NewEnrollmentRepository(db)
 	enrollmentService := service.NewEnrollmentService(enrollmentRepo, courseRepo, userRepo, notifClient)

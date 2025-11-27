@@ -113,9 +113,10 @@ func (r *enrollmentRepository) Delete(id uint) error {
 // IsEnrolled checks if a user is enrolled in a course
 func (r *enrollmentRepository) IsEnrolled(userID, courseID uint) (bool, error) {
 	var count int64
+	// Consider both active and completed as enrolled; only dropped is not enrolled
 	err := r.db.Model(&domain.Enrollment{}).
-		Where("user_id = ? AND course_id = ? AND status = ?",
-			userID, courseID, domain.EnrollmentStatusActive).
+		Where("user_id = ? AND course_id = ? AND status IN ?",
+			userID, courseID, []domain.EnrollmentStatus{domain.EnrollmentStatusActive, domain.EnrollmentStatusCompleted}).
 		Count(&count).Error
 	return count > 0, err
 }

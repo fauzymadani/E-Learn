@@ -32,11 +32,15 @@ func New(
 	gin.SetMode(cfg.Server.GinMode)
 	r := gin.New()
 
+	r.RedirectTrailingSlash = false
+	r.RedirectFixedPath = false
+
+	r.Use(middleware.CORS())
+
 	// Middlewares
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 	r.Use(middleware.Logger())
-	r.Use(middleware.CORS())
 
 	// Serve static files (uploaded videos and PDFs)
 	r.Static("/uploads", "./uploads")
@@ -87,14 +91,14 @@ func New(
 	courses := v1.Group("/courses")
 	{
 		// CREATE COURSE (Teacher/Admin only)
-		courses.POST("/",
+		courses.POST("", // ← Hapus "/" jadi ""
 			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
 			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
 			courseHandler.Create,
 		)
 
 		// GET ALL COURSES (public)
-		courses.GET("/", courseHandler.GetList)
+		courses.GET("", courseHandler.GetList) // ← Hapus "/" jadi ""
 
 		// GET COURSE BY ID (public)
 		courses.GET("/:course_id", courseHandler.Get)

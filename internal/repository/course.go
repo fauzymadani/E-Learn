@@ -75,7 +75,6 @@ func (r *courseRepository) GetByInstructorID(ctx context.Context, instructorID u
 
 	err := r.db.WithContext(ctx).
 		Where("teacher_id = ?", instructorID).
-		Preload("Teacher").
 		Order("created_at DESC").
 		Limit(limit).
 		Offset(offset).

@@ -1,11 +1,13 @@
 package service
 
 import (
-	"errors"
-	"fmt"
-
 	"elearning/internal/domain"
 	"elearning/internal/repository"
+	"errors"
+	"fmt"
+	"log"
+	"os"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -57,6 +59,29 @@ func (s *LessonService) UpdateLesson(l *domain.Lesson) error {
 
 // DeleteLesson deletes a lesson by id.
 func (s *LessonService) DeleteLesson(id int64) error {
+	// Get lesson to access file paths
+	lesson, err := s.repo.GetByID(id)
+	if err != nil {
+		return fmt.Errorf("get lesson %d: %w", id, err)
+	}
+
+	// Delete video file if exists
+	if lesson.VideoURL != "" {
+		videoPath := strings.TrimPrefix(lesson.VideoURL, "/")
+		if err := os.Remove(videoPath); err != nil && !os.IsNotExist(err) {
+			log.Printf("failed to delete video file %s: %v", videoPath, err)
+		}
+	}
+
+	// Delete lesson file if exists
+	if lesson.FileURL != "" {
+		filePath := strings.TrimPrefix(lesson.FileURL, "/")
+		if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
+			log.Printf("failed to delete lesson file %s: %v", filePath, err)
+		}
+	}
+
+	// Delete lesson from database
 	if err := s.repo.Delete(id); err != nil {
 		return fmt.Errorf("delete lesson %d: %w", id, err)
 	}
