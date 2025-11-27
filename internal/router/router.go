@@ -1,6 +1,7 @@
 package router
 
 import (
+	"elearning/internal/service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -27,6 +28,8 @@ func New(
 	notificationHandler *handler.NotificationHandler,
 	userHandler *handler.UserHandler,
 	dashboardHandler *handler.DashboardHandler,
+	courseService service.CourseService,
+	lessonService service.LessonServiceInterface,
 ) *gin.Engine {
 
 	gin.SetMode(cfg.Server.GinMode)
@@ -91,14 +94,14 @@ func New(
 	courses := v1.Group("/courses")
 	{
 		// CREATE COURSE (Teacher/Admin only)
-		courses.POST("", // ← Hapus "/" jadi ""
+		courses.POST("",
 			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
 			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
 			courseHandler.Create,
 		)
 
 		// GET ALL COURSES (public)
-		courses.GET("", courseHandler.GetList) // ← Hapus "/" jadi ""
+		courses.GET("", courseHandler.GetList)
 
 		// GET COURSE BY ID (public)
 		courses.GET("/:course_id", courseHandler.Get)
@@ -107,12 +110,14 @@ func New(
 		courses.PUT("/:course_id",
 			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
 			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
+			middleware.RequireCourseOwnership(courseService),
 			courseHandler.Update,
 		)
 
 		courses.PUT("/:course_id/publish",
 			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
 			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
+			middleware.RequireCourseOwnership(courseService),
 			courseHandler.Publish,
 		)
 
@@ -120,18 +125,42 @@ func New(
 		courses.DELETE("/:course_id",
 			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
 			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
+			middleware.RequireCourseOwnership(courseService),
 			courseHandler.Delete,
 		)
 	}
 
 	lessons := v1.Group("/courses/:course_id/lessons")
 	{
-		lessons.POST("", middleware.AuthMiddleware(tokenMaker, tokenBlacklist), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Create)
+		lessons.POST("",
+			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
+			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
+			middleware.RequireCourseOwnership(courseService),
+			lessonHandler.Create,
+		)
+
 		lessons.GET("", lessonHandler.ListByCourse)
 		lessons.GET("/:lesson_id", lessonHandler.Get)
-		lessons.PUT("/:lesson_id", middleware.AuthMiddleware(tokenMaker, tokenBlacklist), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Update)
-		lessons.DELETE("/:lesson_id", middleware.AuthMiddleware(tokenMaker, tokenBlacklist), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Delete)
-		lessons.PUT("/reorder", middleware.AuthMiddleware(tokenMaker, tokenBlacklist), middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin), lessonHandler.Reorder)
+		// UPDATE LESSON - ownership check
+		lessons.PUT("/:lesson_id",
+			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
+			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
+			middleware.RequireLessonOwnership(lessonService, courseService),
+			lessonHandler.Update,
+		)
+
+		lessons.DELETE("/:lesson_id",
+			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
+			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
+			middleware.RequireLessonOwnership(lessonService, courseService),
+			lessonHandler.Delete,
+		)
+		lessons.PUT("/reorder",
+			middleware.AuthMiddleware(tokenMaker, tokenBlacklist),
+			middleware.RequireRole(domain.RoleTeacher, domain.RoleAdmin),
+			middleware.RequireCourseOwnership(courseService),
+			lessonHandler.Reorder,
+		)
 	}
 
 	// ENROLLMENT ROUTES

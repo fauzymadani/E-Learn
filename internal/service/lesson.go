@@ -12,13 +12,23 @@ import (
 	"gorm.io/gorm"
 )
 
+// LessonServiceInterface defines the interface for lesson operations
+type LessonServiceInterface interface {
+	CreateLesson(l *domain.Lesson) error
+	GetLesson(id int64) (*domain.Lesson, error)
+	GetLessonsByCourse(courseID int64) ([]domain.Lesson, error)
+	UpdateLesson(l *domain.Lesson) error
+	DeleteLesson(id int64) error
+	Reorder(courseID int64, orders map[int64]int) error
+}
+
 // LessonService handles lesson business logic.
 type LessonService struct {
 	repo repository.LessonRepository
 }
 
 // NewLessonService returns a new LessonService.
-func NewLessonService(repo repository.LessonRepository) *LessonService {
+func NewLessonService(repo repository.LessonRepository) LessonServiceInterface {
 	return &LessonService{repo: repo}
 }
 

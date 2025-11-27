@@ -102,7 +102,9 @@ func main() {
 		progressHandler,
 		notificationHandler,
 		userHandler,
-		dashboardHandler)
+		dashboardHandler,
+		courseService,
+		lessonService)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,

@@ -19,10 +19,10 @@ import (
 )
 
 type LessonHandler struct {
-	service *service.LessonService
+	service service.LessonServiceInterface // INTERFACE
 }
 
-func NewLessonHandler(service *service.LessonService) *LessonHandler {
+func NewLessonHandler(service service.LessonServiceInterface) *LessonHandler {
 	return &LessonHandler{service}
 }
 
