@@ -1,0 +1,6 @@
+[submodule "frontend"]
+	path = frontend
+	url = https://github.com/fauzymadani/E-Learning-Frontend
+[submodule "microservices/notification-service"]
+	path = microservices/notification-service
+	url = https://github.com/fauzymadani/Go-Notification-Service
