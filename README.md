@@ -99,6 +99,73 @@ versi tools yang saya pake:
 - Log rotation dan monitoring
 - RESTful API
 
+# Kenapa Menggunakan Go?
+singkatnya: pengen nyoba aja sih.
+lengkapnya: Go (Golang) dipilih sebagai bahasa pemrograman backend karena mendukung paradigma Object-Oriented Programming (OOP) dengan pendekatan yang unik dan modern. Meskipun Go tidak memiliki class seperti Java atau C++, Go tetap mendukung prinsip-prinsip OOP melalui:
+
+## Implementasi OOP di Go
+### 1. Encapsulation (Enkapsulasi)
+Go menggunakan struct dan visibility rules (exported/unexported) untuk enkapsulasi data:
+```go
+type User struct {
+    ID       uint
+    name     string  // private (unexported)
+    Password string  // public (exported)
+}
+```
+### 2. Composition over Inheritance
+Go tidak mendukung inheritance, namun menggunakan composition yang lebih fleksibel:
+```go
+type Repository struct {
+    db *gorm.DB
+}
+
+type UserRepository struct {
+    Repository  // embedded struct (composition)
+}
+```
+### 3. Polymorphism melalui Interface
+Go menggunakan interface untuk mencapai polymorphism tanpa coupling yang ketat:
+```go
+type CourseService interface {
+    Create(course *Course) error
+    GetByID(id uint) (*Course, error)
+}
+
+type courseServiceImpl struct {
+    repo CourseRepository
+}
+
+func (s *courseServiceImpl) Create(course *Course) error {
+    // implementation
+}
+```
+### 4. Methods pada Struct
+Go mendukung method yang di-attach pada struct, mirip dengan class methods:
+```go
+func (u *User) ValidatePassword(password string) bool {
+    return bcrypt.CompareHashAndPassword(u.Password, password) == nil
+}
+```
+### Keunggulan Pendekatan OOP Go
+
+Simplicity: Tidak ada inheritance kompleks, lebih mudah dipahami
+Composition: Lebih fleksibel daripada inheritance hierarchy
+Interface Satisfaction: Duck typing membuat code lebih loosely coupled
+No Constructor Overhead: Initialization lebih eksplisit dan jelas
+Better Performance: Tanpa virtual method table overhead
+
+### Penerapan dalam Proyek
+Dalam proyek E-Learning Platform ini, prinsip OOP diterapkan melalui:
+
+1. Domain Layer: Struct sebagai representasi entity
+2. Repository Pattern: Interface untuk abstraksi database operations
+3. Service Layer: Business logic dengan dependency injection
+4. Handler Layer: Request/response handling dengan method receivers
+5. Middleware: Composition untuk chain of responsibility pattern
+
+Arsitektur ini mengikuti Clean Architecture dan SOLID Principles, membuktikan bahwa Go dapat digunakan untuk membangun aplikasi enterprise-grade dengan prinsip OOP yang baik.
+
 ## Arsitektur Sistem
 
 ```
