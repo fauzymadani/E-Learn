@@ -90,6 +90,8 @@ func main() {
 	dashboardService := service.NewDashboardService(dashboardRepo, notifClient, userRepo)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 
+	adminHandler := handler.NewAdminHandler(userService, notifClient)
+
 	r := router.New(
 		cfg,
 		db,
@@ -103,6 +105,7 @@ func main() {
 		notificationHandler,
 		userHandler,
 		dashboardHandler,
+		adminHandler,
 		courseService,
 		lessonService)
 

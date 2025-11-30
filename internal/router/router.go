@@ -28,6 +28,7 @@ func New(
 	notificationHandler *handler.NotificationHandler,
 	userHandler *handler.UserHandler,
 	dashboardHandler *handler.DashboardHandler,
+	adminHandler *handler.AdminHandler,
 	courseService service.CourseService,
 	lessonService service.LessonServiceInterface,
 ) *gin.Engine {
@@ -283,6 +284,18 @@ func New(
 			middleware.RequireRole(domain.RoleAdmin),
 			dashboardHandler.GetAdminDashboard,
 		)
+	}
+
+	// ADMIN ROUTES
+	admin := v1.Group("/admin")
+	admin.Use(middleware.AuthMiddleware(tokenMaker, tokenBlacklist))
+	admin.Use(middleware.RequireRole(domain.RoleAdmin))
+	{
+		// USER MANAGEMENT
+		admin.GET("/users", adminHandler.GetAllUsers)
+		admin.POST("/users", adminHandler.CreateUser)
+		admin.PUT("/users/:user_id", adminHandler.UpdateUser)
+		admin.DELETE("/users/:user_id", adminHandler.DeleteUser)
 	}
 
 	return r

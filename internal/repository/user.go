@@ -19,6 +19,7 @@ type UserRepository interface {
 	Update(user *domain.User) error
 	Delete(id uint) error
 	UpdatePassword(id uint, hashedPassword string) error
+	FindAll() ([]domain.User, error)
 }
 
 type userRepository struct {
@@ -83,4 +84,10 @@ func (r *userRepository) UpdatePassword(id uint, hashedPassword string) error {
 	return r.db.Model(&domain.User{}).
 		Where("id = ?", id).
 		Update("password", hashedPassword).Error
+}
+
+func (r *userRepository) FindAll() ([]domain.User, error) {
+	var users []domain.User
+	err := r.db.Order("created_at DESC").Find(&users).Error
+	return users, err
 }

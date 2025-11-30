@@ -228,7 +228,7 @@ func (h *EnrollmentHandler) GetEnrollmentStatus(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param enrollment_id path int true "Enrollment ID"
-// @Param body body ProgressUpdateRequest true "Progress update"
+// @Param body ProgressUpdateRequest true "Progress update"
 // @Security BearerAuth
 // @Success 200 {object} map[string]bool
 // @Failure 400 {object} ErrorResponse
