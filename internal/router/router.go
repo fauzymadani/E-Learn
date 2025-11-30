@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"elearning/internal/config"
@@ -29,8 +30,10 @@ func New(
 	userHandler *handler.UserHandler,
 	dashboardHandler *handler.DashboardHandler,
 	adminHandler *handler.AdminHandler,
+	reportsHandler *handler.ReportsHandler,
 	courseService service.CourseService,
 	lessonService service.LessonServiceInterface,
+	logger *zap.Logger, // Add logger parameter
 ) *gin.Engine {
 
 	gin.SetMode(cfg.Server.GinMode)
@@ -39,12 +42,12 @@ func New(
 	r.RedirectTrailingSlash = false
 	r.RedirectFixedPath = false
 
+	// Apply middlewares
 	r.Use(middleware.CORS())
-
-	// Middlewares
-	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
-	r.Use(middleware.Logger())
+
+	r.Use(gin.Logger())
+	r.Use(middleware.LoggerMiddleware(logger)) // Custom Zap logger middleware
 
 	// Serve static files (uploaded videos and PDFs)
 	r.Static("/uploads", "./uploads")
@@ -296,6 +299,12 @@ func New(
 		admin.POST("/users", adminHandler.CreateUser)
 		admin.PUT("/users/:user_id", adminHandler.UpdateUser)
 		admin.DELETE("/users/:user_id", adminHandler.DeleteUser)
+
+		admin.GET("/reports/overview", reportsHandler.GetOverviewReport)
+		admin.GET("/reports/enrollments", reportsHandler.GetEnrollmentReport)
+		admin.GET("/reports/users", reportsHandler.GetUserReport)
+		admin.GET("/reports/courses", reportsHandler.GetCourseReport)
+		admin.GET("/reports/revenue", reportsHandler.GetRevenueReport)
 	}
 
 	return r

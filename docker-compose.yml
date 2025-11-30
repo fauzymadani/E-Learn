@@ -7,44 +7,78 @@ services:
       dockerfile: Dockerfile
     container_name: elearning-backend
     restart: unless-stopped
-    ports:
-      - "8080:8080"
-    # Use host network to access localhost database
+    ports: []
+    #ports:
+    #  - "8080:8080"
+    #  # Use bridge network with extra_hosts for Windows
+    #  extra_hosts:
+    #    - "host.docker.internal:host-gateway"
+    # Port mapping disabled when using host network mode
+    # Container will directly use host's port 8080
+    # Use host network to access localhost database on Linux
+    # Note: host network mode only works on Linux
     network_mode: "host"
     environment:
-      # Database connection (connects to host PostgreSQL)
-      - DB_HOST=localhost
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=
-      - DB_NAME=elearning
-      - DB_SSLMODE=disable
-      
-      # Server configuration
-      - SERVER_PORT=8080
-      - GIN_MODE=release
-      
-      # JWT configuration
-      - JWT_SECRET=${JWT_SECRET:HMNKnj6wI2fYmtDJ40BxSZL7yYcdvt4JYD3mQ5Tfnoc=}
-      - JWT_EXPIRATION=24h
-      
-      # Notification gRPC (adjust if you have notification service)
-      - NOTIFICATION_GRPC_ADDRESS=localhost:50051
-      
-      # Google Cloud Storage (set to false if not using)
-      - GCS_ENABLED=false
-      - GCS_BUCKET_NAME=${GCS_BUCKET_NAME:-}
-      
+      # Database connection (use localhost because of host network mode)
+      DB_HOST: ${DB_HOST:-localhost}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      DB_NAME: ${DB_NAME:-elearning}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      DB_TIMEZONE: ${DB_TIMEZONE:-Asia/Jakarta}
+
+      # Server configuration (match with config.go names!)
+      PORT: "8080"
+      GIN_MODE: ${GIN_MODE:-release}
+
+      # JWT configuration (JWT_EXPIRATION_HOURS must be integer!)
+      JWT_SECRET: ${JWT_SECRET:-HMNKnj6wI2fYmtDJ40BxSZL7yYcdvt4JYD3mQ5Tfnoc=}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
+
+      # Notification gRPC (use host.docker.internal if on host)
+      NOTIFICATION_GRPC_ADDR: ${NOTIFICATION_GRPC_ADDR:-host.docker.internal:50051}
+
+      # Google Cloud Storage
+      GCS_ENABLED: ${GCS_ENABLED:-false}
+      GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-}
+
+      # Logger configuration (match with config.go LogConfig struct)
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FILE: ${LOG_FILE:-logs/app.log}
+      LOG_MAX_SIZE_MB: ${LOG_MAX_SIZE_MB:-10}
+      LOG_MAX_BACKUPS: ${LOG_MAX_BACKUPS:-5}
+      LOG_MAX_AGE: ${LOG_MAX_AGE:-30}
+
     volumes:
       # Mount uploads directory to persist files
       - ./uploads:/app/uploads
-      # Mount .env file (optional)
+      # Mount logs directory to view logs from host
+      - ./logs:/app/logs
+      # Mount .env file (optional, env vars above take precedence)
       - ./.env:/app/.env:ro
-    depends_on: []
+
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
+# <backup>: Add PostgreSQL service if local db not working
+#  postgres:
+#    image: postgres:15-alpine
+#    container_name: elearning-postgres
+#    restart: unless-stopped
+#    environment:
+#      POSTGRES_USER: ${DB_USER:-postgres}
+#      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+#      POSTGRES_DB: ${DB_NAME:-elearning}
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+#      - ./elearning.sql:/docker-entrypoint-initdb.d/init.sql
+#
+#volumes:
+#  postgres_data:

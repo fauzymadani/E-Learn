@@ -1,5 +1,12 @@
+# Ignore environment variable files
 .env
 
+# IDE files
+.vscode/
 .idea/
 
+# Temporary files
 tmp/
+
+# Logs files
+logs/

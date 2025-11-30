@@ -16,6 +16,7 @@ type Config struct {
 	JWT              JWTConfig
 	NotificationGRPC string
 	GCS              GCSConfig
+	LogConfig        LogConfig
 }
 
 type ServerConfig struct {
@@ -41,6 +42,25 @@ type JWTConfig struct {
 type GCSConfig struct {
 	BucketName string
 	Enabled    bool
+}
+
+type LogConfig struct {
+	Level      string
+	File       string
+	MaxSize    int
+	MaxBackups int
+	MaxAge     int
+}
+
+// getEnvInt returns the integer value of an environment variable or the provided default.
+func getEnvInt(key string, defaultVal int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+		// optionally log parse error here
+	}
+	return defaultVal
 }
 
 // Load loads configuration from environment variables
@@ -79,6 +99,13 @@ func Load() (*Config, error) {
 		GCS: GCSConfig{
 			BucketName: getEnv("GCS_BUCKET_NAME", ""),
 			Enabled:    getEnv("GCS_ENABLED", "false") == "true",
+		},
+		LogConfig: LogConfig{
+			Level:      getEnv("LOG_LEVEL", "info"),
+			File:       getEnv("LOG_FILE", "logs/app.log"),
+			MaxSize:    getEnvInt("LOG_MAX_SIZE_MB", 10),
+			MaxBackups: getEnvInt("LOG_MAX_BACKUPS", 5),
+			MaxAge:     getEnvInt("LOG_MAX_AGE", 30),
 		},
 	}
 

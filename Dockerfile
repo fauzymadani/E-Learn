@@ -16,7 +16,6 @@ RUN go mod download
 COPY . .
 
 # Build the application with CGO disabled for pure Go build
-# This creates a static binary that doesn't require C libraries
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -a \
     -installsuffix nocgo \
@@ -27,8 +26,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 # Runtime stage
 FROM alpine:latest
 
-# Install ca-certificates for HTTPS requests
-RUN apk --no-cache add ca-certificates tzdata
+# Install ca-certificates for HTTPS and curl for healthcheck
+RUN apk --no-cache add ca-certificates tzdata curl
 
 # Create non-root user
 RUN addgroup -g 1000 appuser && \
@@ -40,19 +39,22 @@ WORKDIR /app
 # Copy binary from builder
 COPY --from=builder /app/bin/api .
 
-# Copy .env file (optional, can be overridden by docker-compose)
-COPY .env .env
+# Copy .env file (optional, will be overridden by docker-compose env vars)
+COPY .env* ./
 
-# Create uploads directory
-RUN mkdir -p uploads/avatars uploads/videos uploads/files && \
+# Create required directories with proper permissions
+RUN mkdir -p uploads/avatars uploads/videos uploads/files logs && \
+    chmod -R 777 logs && \
     chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
+
+# Set environment variable to indicate running in container
+ENV CONTAINER=true
 
 # Expose port
 EXPOSE 8080
 
 # Run the application
 CMD ["./api"]
-
