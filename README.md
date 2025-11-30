@@ -128,6 +128,9 @@ versi tools yang saya pake:
 └─────────────┘
 ```
 
+## UML
+![UML Diagram](./uml.svg)
+
 ### Arsitektur Microservices
 
 **Main Service (Port 8080)**

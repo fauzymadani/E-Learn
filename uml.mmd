@@ -1,0 +1,173 @@
+classDiagram
+    class User {
+        +uint ID
+        +string Email
+        +string Password
+        +string Name
+        +string Role
+        +string Avatar
+        +DateTime CreatedAt
+        +DateTime UpdatedAt
+    }
+
+    class Course {
+        +uint ID
+        +uint TeacherID
+        +string Title
+        +string Description
+        +string Thumbnail
+        +string Status
+        +DateTime CreatedAt
+        +DateTime UpdatedAt
+    }
+
+    class Lesson {
+        +uint ID
+        +uint CourseID
+        +string Title
+        +string Content
+        +string VideoURL
+        +string FileURL
+        +int Order
+        +DateTime CreatedAt
+        +DateTime UpdatedAt
+    }
+
+    class Enrollment {
+        +uint ID
+        +uint StudentID
+        +uint CourseID
+        +float Progress
+        +DateTime EnrolledAt
+        +DateTime CompletedAt
+    }
+
+    class Progress {
+        +uint ID
+        +uint StudentID
+        +uint LessonID
+        +bool IsCompleted
+        +DateTime CompletedAt
+    }
+
+    class Notification {
+        +uint ID
+        +uint UserID
+        +string Title
+        +string Message
+        +string Type
+        +bool IsRead
+        +DateTime CreatedAt
+    }
+
+    class AuthHandler {
+        +Register()
+        +Login()
+        +Logout()
+        +GetProfile()
+    }
+
+    class CourseHandler {
+        +Create()
+        +GetList()
+        +Get()
+        +Update()
+        +Publish()
+        +Delete()
+    }
+
+    class LessonHandler {
+        +Create()
+        +ListByCourse()
+        +Get()
+        +Update()
+        +Delete()
+        +Reorder()
+    }
+
+    class EnrollmentHandler {
+        +Enroll()
+        +Unenroll()
+        +GetMyEnrollments()
+        +GetEnrollmentStatus()
+        +GetCourseEnrollments()
+        +UpdateProgress()
+    }
+
+    class ProgressHandler {
+        +MarkCompleted()
+        +UnmarkCompleted()
+        +GetLessonProgress()
+        +GetCourseProgress()
+    }
+
+    class NotificationHandler {
+        +GetNotifications()
+        +GetUnreadCount()
+        +MarkAsRead()
+        +MarkAllAsRead()
+    }
+
+    class UserHandler {
+        +GetProfile()
+        +UpdateProfile()
+        +ChangePassword()
+        +GetEnrolledCourses()
+        +GetTaughtCourses()
+    }
+
+    class DashboardHandler {
+        +GetStudentDashboard()
+        +GetTeacherDashboard()
+        +GetAdminDashboard()
+    }
+
+    class AdminHandler {
+        +GetAllUsers()
+        +CreateUser()
+        +UpdateUser()
+        +DeleteUser()
+    }
+
+    class ReportsHandler {
+        +GetOverviewReport()
+        +GetEnrollmentReport()
+        +GetUserReport()
+        +GetCourseReport()
+        +GetRevenueReport()
+    }
+
+    class AuthMiddleware {
+        +Authenticate()
+        +RequireRole()
+    }
+
+    class OwnershipMiddleware {
+        +RequireCourseOwnership()
+        +RequireLessonOwnership()
+    }
+
+    User "1" --> "*" Course : teaches
+    User "1" --> "*" Enrollment : enrolls
+    User "1" --> "*" Progress : tracks
+    User "1" --> "*" Notification : receives
+
+    Course "1" --> "*" Lesson : contains
+    Course "1" --> "*" Enrollment : has
+
+    Lesson "1" --> "*" Progress : tracked_by
+
+    Enrollment "*" --> "1" Course : for
+    Enrollment "*" --> "1" User : by_student
+
+    AuthHandler ..> User : manages
+    CourseHandler ..> Course : manages
+    LessonHandler ..> Lesson : manages
+    EnrollmentHandler ..> Enrollment : manages
+    ProgressHandler ..> Progress : manages
+    NotificationHandler ..> Notification : manages
+    UserHandler ..> User : manages
+
+    AuthMiddleware ..> AuthHandler : protects
+    OwnershipMiddleware ..> CourseHandler : protects
+    OwnershipMiddleware ..> LessonHandler : protects
