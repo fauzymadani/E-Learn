@@ -129,7 +129,7 @@ versi tools yang saya pake:
 ```
 
 ## UML
-![UML Diagram](./uml.svg)
+![UML Diagram](./uml.png)
 
 ### Arsitektur Microservices
 
