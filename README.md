@@ -195,8 +195,118 @@ Arsitektur ini mengikuti Clean Architecture dan SOLID Principles, membuktikan ba
 └─────────────┘
 ```
 
-## UML
-![UML Diagram](./uml.png)
+## Diagram
+### Class diagram
+![Class Diagram](./class.png)
+
+### UML Sequence Diagram
+```mermaid
+---
+config:
+  theme: redux
+---
+graph LR
+    Guest["Guest"]
+    Student["Student"]
+    Teacher["Teacher"]
+    Admin["Admin"]
+
+    subgraph System["E-Learning Platform"]
+        direction TB
+
+        subgraph AuthFeatures["Authentication"]
+            Login["Login"]
+            Register["Register"]
+            Logout["Logout"]
+        end
+
+        subgraph StudentFeatures["Student Features"]
+            Browse["Browse Courses"]
+            ViewDetail["View Course Detail"]
+            Enroll["Enroll in Course"]
+            Learn["Learn Lessons"]
+            TrackProgress["Track Progress"]
+            MarkComplete["Mark Lesson Complete"]
+            StudentDash["View Student Dashboard"]
+        end
+
+        subgraph TeacherFeatures["Teacher Features"]
+            CreateCourse["Create Course"]
+            EditCourse["Edit Course"]
+            DeleteCourse["Delete Course"]
+            PublishCourse["Publish/Unpublish Course"]
+            ManageLessons["Manage Lessons"]
+            ViewStudents["View Enrolled Students"]
+            TeacherDash["View Teacher Dashboard"]
+        end
+
+        subgraph AdminFeatures["Admin Features"]
+            ManageUsers["Manage Users"]
+            ManageCourses["Manage All Courses"]
+            ViewReports["View Reports"]
+            SendNotif["Send Notifications"]
+            AdminDash["View Admin Dashboard"]
+        end
+
+        subgraph CommonFeatures["Common Features"]
+            ViewProfile["View Profile"]
+            EditProfile["Edit Profile"]
+            ChangePass["Change Password"]
+            ViewNotif["View Notifications"]
+        end
+    end
+    Guest --> Browse
+    Guest --> ViewDetail
+    Guest --> Register
+    Guest --> Login
+    Student --> Login
+    Student --> Browse
+    Student --> ViewDetail
+    Student --> Enroll
+    Student --> Learn
+    Student --> TrackProgress
+    Student --> MarkComplete
+    Student --> StudentDash
+    Student --> ViewProfile
+    Student --> EditProfile
+    Student --> ChangePass
+    Student --> ViewNotif
+    Student --> Logout
+    Teacher --> Login
+    Teacher --> CreateCourse
+    Teacher --> EditCourse
+    Teacher --> DeleteCourse
+    Teacher --> PublishCourse
+    Teacher --> ManageLessons
+    Teacher --> ViewStudents
+    Teacher --> TeacherDash
+    Teacher --> ViewProfile
+    Teacher --> EditProfile
+    Teacher --> ChangePass
+    Teacher --> ViewNotif
+    Teacher --> Logout
+    Admin --> Login
+    Admin --> ManageUsers
+    Admin --> ManageCourses
+    Admin --> ViewReports
+    Admin --> SendNotif
+    Admin --> AdminDash
+    Admin --> ViewProfile
+    Admin --> EditProfile
+    Admin --> ChangePass
+    Admin --> ViewNotif
+    Admin --> Logout
+    Enroll -.->|include| Login
+    Learn -.->|include| Login
+    CreateCourse -.->|include| Login
+    ManageUsers -.->|include| Login
+    classDef actor fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef usecase fill:#fff,stroke:#666,stroke-width:1px
+    classDef system fill:#f5f5f5,stroke:#999,stroke-width:2px
+
+    class Guest,Student,Teacher,Admin actor
+    class System system
+````
 
 ### Arsitektur Microservices
 

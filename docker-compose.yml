@@ -1,49 +1,88 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: docker.io/library/postgres:18.1-alpine
+    container_name: elearning-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: ${DB_NAME:-elearning}
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+      TZ: ${DB_TIMEZONE:-Asia/Jakarta}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./elearning.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d elearning"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - elearning-network
+
+  notification-service:
+    build:
+      context: ./microservices/notification-service
+      dockerfile: Dockerfile
+    container_name: elearning-notification
+    restart: unless-stopped
+    ports:
+      - "50051:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: ""
+      DB_NAME: elearning
+      DB_SSLMODE: disable
+      DB_TIMEZONE: Asia/Jakarta
+      GRPC_PORT: "50051"
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 50051 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: elearning-backend
     restart: unless-stopped
-    ports: []
-    #ports:
-    #  - "8080:8080"
-    #  # Use bridge network with extra_hosts for Windows
-    #  extra_hosts:
-    #    - "host.docker.internal:host-gateway"
-    # Port mapping disabled when using host network mode
-    # Container will directly use host's port 8080
-    # Use host network to access localhost database on Linux
-    # Note: host network mode only works on Linux
-    network_mode: "host"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
     environment:
-      # Database connection (use localhost because of host network mode)
-      DB_HOST: ${DB_HOST:-localhost}
-      DB_PORT: ${DB_PORT:-5432}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-}
-      DB_NAME: ${DB_NAME:-elearning}
-      DB_SSLMODE: ${DB_SSLMODE:-disable}
-      DB_TIMEZONE: ${DB_TIMEZONE:-Asia/Jakarta}
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: ""
+      DB_NAME: elearning
+      DB_SSLMODE: disable
+      DB_TIMEZONE: Asia/Jakarta
 
-      # Server configuration (match with config.go names!)
       PORT: "8080"
       GIN_MODE: ${GIN_MODE:-release}
-
-      # JWT configuration (JWT_EXPIRATION_HOURS must be integer!)
       JWT_SECRET: ${JWT_SECRET:-HMNKnj6wI2fYmtDJ40BxSZL7yYcdvt4JYD3mQ5Tfnoc=}
       JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
+      NOTIFICATION_GRPC_ADDR: notification-service:50051
 
-      # Notification gRPC (use host.docker.internal if on host)
-      NOTIFICATION_GRPC_ADDR: ${NOTIFICATION_GRPC_ADDR:-host.docker.internal:50051}
-
-      # Google Cloud Storage
       GCS_ENABLED: ${GCS_ENABLED:-false}
       GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-}
-
-      # Logger configuration (match with config.go LogConfig struct)
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_FILE: ${LOG_FILE:-logs/app.log}
       LOG_MAX_SIZE_MB: ${LOG_MAX_SIZE_MB:-10}
@@ -51,13 +90,11 @@ services:
       LOG_MAX_AGE: ${LOG_MAX_AGE:-30}
 
     volumes:
-      # Mount uploads directory to persist files
       - ./uploads:/app/uploads
-      # Mount logs directory to view logs from host
       - ./logs:/app/logs
-      # Mount .env file (optional, env vars above take precedence)
       - ./.env:/app/.env:ro
-
+    networks:
+      - elearning-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
@@ -65,20 +102,10 @@ services:
       retries: 3
       start_period: 40s
 
-# <backup>: Add PostgreSQL service if local db not working
-#  postgres:
-#    image: postgres:15-alpine
-#    container_name: elearning-postgres
-#    restart: unless-stopped
-#    environment:
-#      POSTGRES_USER: ${DB_USER:-postgres}
-#      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-#      POSTGRES_DB: ${DB_NAME:-elearning}
-#    ports:
-#      - "5432:5432"
-#    volumes:
-#      - postgres_data:/var/lib/postgresql/data
-#      - ./elearning.sql:/docker-entrypoint-initdb.d/init.sql
-#
-#volumes:
-#  postgres_data:
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  elearning-network:
+    driver: bridge
