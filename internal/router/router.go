@@ -45,6 +45,7 @@ func New(
 	// Apply middlewares
 	r.Use(middleware.CORS())
 	r.Use(gin.Recovery())
+	r.Use(middleware.RateLimiter())
 
 	r.Use(gin.Logger())
 	r.Use(middleware.LoggerMiddleware(logger)) // Custom Zap logger middleware
@@ -87,6 +88,7 @@ func New(
 
 	// AUTH ROUTES
 	auth := v1.Group("/auth")
+	auth.Use(middleware.AuthRateLimiter()) // 5 req/s, burst 10
 	{
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
