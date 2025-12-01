@@ -409,7 +409,7 @@ sudo apt install podman podman-compose
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/fauzymadani/E-Learning.git
+git clone --recurse-submodules https://github.com/fauzymadani/E-Learning.git
 cd E-Learning
 ```
 
