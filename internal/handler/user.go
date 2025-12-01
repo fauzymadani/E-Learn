@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -93,6 +92,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 				filename := filepath.Base(*user.Avatar)
 				err := h.gcsUploader.Delete(c.Request.Context(), filename)
 				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete old avatar from cloud"})
 					return
 				}
 			} else {
@@ -100,6 +100,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 				if _, err := os.Stat(oldPath); err == nil {
 					err := os.Remove(oldPath)
 					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove old avatar file"})
 						return
 					}
 				}
@@ -111,12 +112,11 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
 			return
 		}
-		defer func(src multipart.File) {
-			err := src.Close()
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to close file"})
+		defer func() {
+			if e := src.Close(); e != nil {
+				fmt.Printf("warning: failed to close uploaded file: %v\n", e)
 			}
-		}(src)
+		}()
 
 		img, _, err := image.Decode(src)
 		if err != nil {
@@ -154,12 +154,11 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
 				return
 			}
-			defer func(out *os.File) {
-				err := out.Close()
-				if err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to close file"})
+			defer func() {
+				if e := out.Close(); e != nil {
+					fmt.Printf("warning: failed to close output file: %v\n", e)
 				}
-			}(out)
+			}()
 
 			if err := jpeg.Encode(out, img, &jpeg.Options{Quality: 85}); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to compress image"})
@@ -176,7 +175,17 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
+	// Return the updated user so clients get the latest profile
+	updatedUser, err := h.userService.GetProfile(claims.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Profile updated but failed to fetch updated user"})
+		return
+	}
+
+	// Debug: print updated user to stdout to verify the server has data
+	fmt.Printf("[debug] updated user: %+v\n", updatedUser)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully", "user": updatedUser})
 }
 
 type ChangePasswordRequest struct {

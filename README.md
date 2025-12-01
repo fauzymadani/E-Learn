@@ -496,24 +496,27 @@ podman-compose logs -f
 podman-compose down
 ```
 
-### Manual (Development)
-
-#### 1. Jalankan Notification Service
+### Penggunaan Makefile
 
 ```bash
-cd microservices/notification-service
-go run cmd/server/main.go
-```
+# Overview perintah Makefile:
+Usage: make [target]
 
-#### 2. Jalankan Backend Main Service
-
-```bash
-# Di terminal baru, dari root directory
-go run cmd/api/main.go
-
-# Atau build terlebih dahulu
-go build -o bin/api cmd/api/main.go
-./bin/api
+Targets:
+  help     Show this help
+  build    Build binary into ./bin
+  run      Build and run
+  test     Run unit tests
+  fmt      gofmt (via go fmt)
+  vet      go vet
+  lint     run golangci-lint (must be installed)
+  deps     download modules
+  clean    remove build artifacts
+  
+# Build dan jalankan aplikasi
+make build
+make run
+make test # TODO: implementasi test unit
 ```
 
 #### 3. Jalankan Frontend
@@ -677,11 +680,11 @@ bun run build
 
 ```bash
 # Build images
-podman build -t elearning-backend .
-podman build -t elearning-frontend ./frontend
+podman-compose build
+podman-compose up -d 
 
-# Run containers
-podman-compose -f docker-compose.prod.yml up -d
+# Liat log
+podman-compose logs -f backend
 ```
 
 ## Troubleshooting
@@ -722,7 +725,12 @@ Proyek ini dibuat untuk keperluan Uji Kompetensi Keahlian (UKK) SMK Jurusan Reka
 - Claude, ChatGPT atas bantuannya dalam pengembangan kode, refactoring, dan implementasi GRPC ke backend.
 - Open source community atas tools dan libraries yang digunakan
 
----
+----
+
+# Referensi
+- OOP in Go: https://www.geeksforgeeks.org/go-language/object-oriented-programming-in-golang/
+- Mengenal Konsep Object-Oriented Pada Golang: https://medium.com/@reza_devhub/mengenal-konsep-object-oriented-pada-golang-b28e6e2b183c
+- Unraveling the Power of OOP in Golang: https://dev.to/parthlaw/object-oriented-go-unraveling-the-power-of-oop-in-golang-49h6
 
 **Catatan:** Dokumentasi ini akan terus diperbarui seiring dengan perkembangan proyek.
 
