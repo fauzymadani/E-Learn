@@ -51,12 +51,14 @@ Proyek ini dikembangkan sebagai bagian dari Uji Kompetensi Keahlian (UKK) jurusa
 
 ### DevOps & Tools
 
-| Teknologi | Deskripsi |
-|-----------|-----------|
-| ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white) | Containerization |
-| ![Podman](https://img.shields.io/badge/Podman-892CA0?style=flat&logo=podman&logoColor=white) | Container engine (alternatif Docker) |
-| ![Docker Compose](https://img.shields.io/badge/Docker_Compose-2496ED?style=flat&logo=docker&logoColor=white) | Multi-container orchestration |
-| ![Git](https://img.shields.io/badge/Git-F05032?style=flat&logo=git&logoColor=white) | Version control |
+| Teknologi                                                                                                    | Deskripsi                                  |
+|--------------------------------------------------------------------------------------------------------------|--------------------------------------------|
+| ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)                 | Containerization                           |
+| ![Podman](https://img.shields.io/badge/Podman-892CA0?style=flat&logo=podman&logoColor=white)                 | Container engine \(alternatif Docker\)     |
+| ![Docker Compose](https://img.shields.io/badge/Docker_Compose-2496ED?style=flat&logo=docker&logoColor=white) | Multi-container orchestration              |
+| ![Prometheus](https://img.shields.io/badge/Prometheus-E6522A?style=flat&logo=prometheus&logoColor=white)     | Monitoring and metrics collection          |
+| ![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat&logo=grafana&logoColor=white)              | Visualization and dashboarding for metrics |
+| ![Git](https://img.shields.io/badge/Git-F05032?style=flat&logo=git&logoColor=white)                          | Version control                            |
 
 ## It works on my machine
 versi tools yang saya pake:
