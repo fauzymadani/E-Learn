@@ -4,6 +4,7 @@ import (
 	"context"
 	"elearning/pkg/grpcclient"
 	"elearning/pkg/logger"
+	"elearning/pkg/metrics"
 	"elearning/pkg/storage"
 	"errors"
 	"log"
@@ -64,6 +65,14 @@ func main() {
 		zapLogger.Fatal("database connection error", zap.Error(err))
 	}
 	zapLogger.Info("Database connected successfully")
+
+	// Start database metrics collector
+	sqlDB, err := db.DB()
+	if err != nil {
+		zapLogger.Fatal("failed to get sql.DB", zap.Error(err))
+	}
+	metrics.StartDBMetricsCollector(sqlDB, zapLogger)
+	zapLogger.Info("Database metrics collector started")
 
 	tokenMaker, err := token.NewJWTMaker(cfg.JWT.Secret)
 	if err != nil {

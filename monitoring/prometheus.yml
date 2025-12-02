@@ -1,0 +1,48 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'elearning-monitor'
+    environment: 'development'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Backend API
+  - job_name: 'elearning-api'
+    static_configs:
+      - targets: ['backend:8080']
+        labels:
+          service: 'api'
+          env: 'development'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # gRPC Notification Service
+  - job_name: 'notification-service'
+    static_configs:
+      - targets: ['notification-service:50051']
+        labels:
+          service: 'notification'
+          env: 'development'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Node Exporter untuk system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node'
+          instance: 'host'
+
+  # PostgreSQL Exporter (uncomment if using PostgreSQL exporter)
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+  #       labels:
+  #         service: 'postgres'

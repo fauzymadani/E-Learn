@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -46,6 +47,7 @@ func New(
 	r.Use(middleware.CORS())
 	r.Use(gin.Recovery())
 	r.Use(middleware.RateLimiter())
+	r.Use(middleware.PrometheusMiddleware(logger))
 
 	r.Use(gin.Logger())
 	r.Use(middleware.LoggerMiddleware(logger)) // Custom Zap logger middleware
@@ -65,6 +67,8 @@ func New(
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
+
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// DB Debug Endpoint
 	r.GET("/debug/db-check", func(c *gin.Context) {

@@ -664,6 +664,7 @@ Aplikasi akan berjalan di:
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8080
 - gRPC Notification: localhost:50051
+- Grafana url: http://localhost:3001/ (see .env for default credentials)
 
 ## Struktur Proyek
 
