@@ -199,84 +199,98 @@ Arsitektur ini mengikuti Clean Architecture dan SOLID Principles, membuktikan ba
 ### Class diagram
 ![Class Diagram](./class.png)
 
-### UML Sequence Diagram
+### Use Case Diagram
 ```mermaid
 ---
 config:
-  theme: redux
+  theme: base
+  themeVariables:
+    primaryColor: '#e3f2fd'
+    primaryTextColor: '#1976d2'
+    primaryBorderColor: '#1976d2'
+    lineColor: '#666'
+    secondaryColor: '#f5f5f5'
+    tertiaryColor: '#fff'
 ---
-graph LR
-    Guest["Guest"]
-    Student["Student"]
-    Teacher["Teacher"]
-    Admin["Admin"]
+graph TB
+%% Actors
+    Guest([Guest])
+    Student([Student])
+    Teacher([Teacher])
+    Admin([Admin])
 
     subgraph System["E-Learning Platform"]
         direction TB
 
-        subgraph AuthFeatures["Authentication"]
-            Login["Login"]
-            Register["Register"]
-            Logout["Logout"]
+        subgraph Auth["Authentication"]
+            Login[Login]
+            Register[Register]
+            Logout[Logout]
         end
 
-        subgraph StudentFeatures["Student Features"]
-            Browse["Browse Courses"]
-            ViewDetail["View Course Detail"]
-            Enroll["Enroll in Course"]
-            Learn["Learn Lessons"]
-            TrackProgress["Track Progress"]
-            MarkComplete["Mark Lesson Complete"]
-            StudentDash["View Student Dashboard"]
+        subgraph StudentF["Student Features"]
+            Browse[Browse Courses]
+            ViewDetail[View Course Detail]
+            Enroll[Enroll in Course]
+            Learn[Learn Lessons]
+            Track[Track Progress]
+            MarkDone[Mark Lesson Complete]
+            StudentDash[Student Dashboard]
         end
 
-        subgraph TeacherFeatures["Teacher Features"]
-            CreateCourse["Create Course"]
-            EditCourse["Edit Course"]
-            DeleteCourse["Delete Course"]
-            PublishCourse["Publish/Unpublish Course"]
-            ManageLessons["Manage Lessons"]
-            ViewStudents["View Enrolled Students"]
-            TeacherDash["View Teacher Dashboard"]
+        subgraph TeacherF["Teacher Features"]
+            CreateCourse[Create Course]
+            EditCourse[Edit Course]
+            DeleteCourse[Delete Course]
+            Publish[Publish/Unpublish]
+            ManageLessons[Manage Lessons]
+            ViewStudents[View Students]
+            TeacherDash[Teacher Dashboard]
         end
 
-        subgraph AdminFeatures["Admin Features"]
-            ManageUsers["Manage Users"]
-            ManageCourses["Manage All Courses"]
-            ViewReports["View Reports"]
-            SendNotif["Send Notifications"]
-            AdminDash["View Admin Dashboard"]
+        subgraph AdminF["Admin Features"]
+            ManageUsers[Manage Users]
+            ManageCourses[Manage All Courses]
+            ViewReports[View Reports]
+            SendNotif[Send Notifications]
+            AdminDash[Admin Dashboard]
         end
 
-        subgraph CommonFeatures["Common Features"]
-            ViewProfile["View Profile"]
-            EditProfile["Edit Profile"]
-            ChangePass["Change Password"]
-            ViewNotif["View Notifications"]
+        subgraph Common["Common Features"]
+            ViewProfile[View Profile]
+            EditProfile[Edit Profile]
+            ChangePass[Change Password]
+            ViewNotif[View Notifications]
         end
     end
+
+%% Guest connections
     Guest --> Browse
     Guest --> ViewDetail
     Guest --> Register
     Guest --> Login
+
+%% Student connections
     Student --> Login
     Student --> Browse
     Student --> ViewDetail
     Student --> Enroll
     Student --> Learn
-    Student --> TrackProgress
-    Student --> MarkComplete
+    Student --> Track
+    Student --> MarkDone
     Student --> StudentDash
     Student --> ViewProfile
     Student --> EditProfile
     Student --> ChangePass
     Student --> ViewNotif
     Student --> Logout
+
+%% Teacher connections
     Teacher --> Login
     Teacher --> CreateCourse
     Teacher --> EditCourse
     Teacher --> DeleteCourse
-    Teacher --> PublishCourse
+    Teacher --> Publish
     Teacher --> ManageLessons
     Teacher --> ViewStudents
     Teacher --> TeacherDash
@@ -285,6 +299,8 @@ graph LR
     Teacher --> ChangePass
     Teacher --> ViewNotif
     Teacher --> Logout
+
+%% Admin connections
     Admin --> Login
     Admin --> ManageUsers
     Admin --> ManageCourses
@@ -296,16 +312,20 @@ graph LR
     Admin --> ChangePass
     Admin --> ViewNotif
     Admin --> Logout
-    Enroll -.->|include| Login
-    Learn -.->|include| Login
-    CreateCourse -.->|include| Login
-    ManageUsers -.->|include| Login
-    classDef actor fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    classDef usecase fill:#fff,stroke:#666,stroke-width:1px
-    classDef system fill:#f5f5f5,stroke:#999,stroke-width:2px
 
-    class Guest,Student,Teacher,Admin actor
-    class System system
+%% Include relationships
+    Enroll -.->|requires| Login
+    Learn -.->|requires| Login
+    CreateCourse -.->|requires| Login
+    ManageUsers -.->|requires| Login
+
+%% Styling
+    classDef actorStyle fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#1976d2
+    classDef usecaseStyle fill:#fff,stroke:#666,stroke-width:2px
+    classDef systemStyle fill:#f5f5f5,stroke:#999,stroke-width:2px
+
+    class Guest,Student,Teacher,Admin actorStyle
+    class System systemStyle
 ````
 
 ### Arsitektur Microservices
@@ -321,10 +341,123 @@ graph LR
 - Protocol Buffers untuk contract definition
 
 ## Skema Database
-
-### Entity Relationship Diagram (ERD)
-
 ![ERD](./elearning.png)
+
+## Entity Relationship Diagram (ERD)
+```mermaid
+erDiagram
+    users ||--o{ categories : creates
+    users ||--o{ courses : teaches
+    users ||--o{ enrollments : enrolls
+    users ||--o{ student_progress : tracks
+    users ||--o{ notifications : receives
+    users ||--o{ progress : completes
+    
+    categories ||--o{ courses : contains
+    
+    courses ||--o{ lessons : has
+    courses ||--o{ enrollments : "enrolled in"
+    courses ||--o{ student_progress : tracks
+    courses ||--|{ course_details : "detailed by"
+    
+    lessons ||--o{ progress : "completed in"
+    
+    users {
+        integer id PK
+        varchar name
+        varchar email
+        varchar password
+        user_role role
+        varchar avatar
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    categories {
+        integer id PK
+        varchar name
+        text description
+        timestamp created_at
+    }
+    
+    courses {
+        integer id PK
+        varchar title
+        text description
+        varchar thumbnail
+        integer category_id FK
+        integer teacher_id FK
+        boolean is_published
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    lessons {
+        integer id PK
+        integer course_id FK
+        varchar title
+        text content
+        varchar video_url
+        varchar file_url
+        integer order_number
+        integer duration
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    course_details {
+        integer id PK
+        varchar title
+        text description
+        varchar thumbnail
+        boolean is_published
+        varchar category_name
+        varchar teacher_name
+        varchar teacher_email
+        bigint total_lessons
+        bigint total_students
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    enrollments {
+        integer id PK
+        integer user_id FK
+        integer course_id FK
+        timestamp enrolled_at
+        enrollment_status status
+        timestamp completed_at
+    }
+    
+    student_progress {
+        integer user_id FK
+        integer course_id FK
+        varchar course_title
+        bigint total_lessons
+        bigint completed_lessons
+        numeric progress_percentage
+        timestamp enrolled_at
+        enrollment_status status
+    }
+    
+    progress {
+        integer id PK
+        integer user_id FK
+        integer lesson_id FK
+        boolean is_completed
+        timestamp completed_at
+    }
+    
+    notifications {
+        integer id PK
+        integer user_id FK
+        varchar title
+        text message
+        notification_type type
+        boolean is_read
+        timestamp created_at
+    }
+```
 
 ### Tabel Utama
 
