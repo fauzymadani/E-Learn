@@ -203,7 +203,7 @@ Arsitektur ini mengikuti Clean Architecture dan SOLID Principles, membuktikan ba
 ```mermaid
 ---
 config:
-  theme: base
+  theme: neo
   themeVariables:
     primaryColor: '#e3f2fd'
     primaryTextColor: '#1976d2'
@@ -211,121 +211,71 @@ config:
     lineColor: '#666'
     secondaryColor: '#f5f5f5'
     tertiaryColor: '#fff'
+  look: handDrawn
+  layout: elk
 ---
-graph TB
-%% Actors
-    Guest([Guest])
-    Student([Student])
-    Teacher([Teacher])
-    Admin([Admin])
-
+flowchart TB
+    subgraph Auth["Authentication"]
+        Login["Login"]
+        Register["Register"]
+        Logout["Logout"]
+    end
+    subgraph StudentF["Student Features"]
+        Browse["Browse Courses"]
+        ViewDetail["View Course Detail"]
+        Enroll["Enroll in Course"]
+        Learn["Learn Lessons"]
+        Track["Track Progress"]
+        MarkDone["Mark Lesson Complete"]
+        StudentDash["Student Dashboard"]
+    end
+    subgraph TeacherF["Teacher Features"]
+        CreateCourse["Create Course"]
+        EditCourse["Edit Course"]
+        DeleteCourse["Delete Course"]
+        Publish["Publish/Unpublish"]
+        ManageLessons["Manage Lessons"]
+        ViewStudents["View Students"]
+        TeacherDash["Teacher Dashboard"]
+    end
+    subgraph AdminF["Admin Features"]
+        ManageUsers["Manage Users"]
+        ManageCourses["Manage All Courses"]
+        ViewReports["View Reports"]
+        SendNotif["Send Notifications"]
+        AdminDash["Admin Dashboard"]
+    end
+    subgraph Common["Common Features"]
+        ViewProfile["View Profile"]
+        EditProfile["Edit Profile"]
+        ChangePass["Change Password"]
+        ViewNotif["View Notifications"]
+    end
     subgraph System["E-Learning Platform"]
         direction TB
-
-        subgraph Auth["Authentication"]
-            Login[Login]
-            Register[Register]
-            Logout[Logout]
-        end
-
-        subgraph StudentF["Student Features"]
-            Browse[Browse Courses]
-            ViewDetail[View Course Detail]
-            Enroll[Enroll in Course]
-            Learn[Learn Lessons]
-            Track[Track Progress]
-            MarkDone[Mark Lesson Complete]
-            StudentDash[Student Dashboard]
-        end
-
-        subgraph TeacherF["Teacher Features"]
-            CreateCourse[Create Course]
-            EditCourse[Edit Course]
-            DeleteCourse[Delete Course]
-            Publish[Publish/Unpublish]
-            ManageLessons[Manage Lessons]
-            ViewStudents[View Students]
-            TeacherDash[Teacher Dashboard]
-        end
-
-        subgraph AdminF["Admin Features"]
-            ManageUsers[Manage Users]
-            ManageCourses[Manage All Courses]
-            ViewReports[View Reports]
-            SendNotif[Send Notifications]
-            AdminDash[Admin Dashboard]
-        end
-
-        subgraph Common["Common Features"]
-            ViewProfile[View Profile]
-            EditProfile[Edit Profile]
-            ChangePass[Change Password]
-            ViewNotif[View Notifications]
-        end
+        Auth
+        StudentF
+        TeacherF
+        AdminF
+        Common
     end
+    Guest(["Guest"]) --> Browse & ViewDetail & Register & Login
+    Student(["Student"]) --> Login & Browse & ViewDetail & Enroll & Learn & Track & MarkDone & StudentDash & ViewProfile & EditProfile & ChangePass & ViewNotif & Logout
+    Teacher(["Teacher"]) --> Login & CreateCourse & EditCourse & DeleteCourse & Publish & ManageLessons & ViewStudents & TeacherDash & ViewProfile & EditProfile & ChangePass & ViewNotif & Logout
+    Admin(["Admin"]) --> Login & ManageUsers & ManageCourses & ViewReports & SendNotif & AdminDash & ViewProfile & EditProfile & ChangePass & ViewNotif & Logout
+    Enroll -. requires .-> Login
+    Learn -. requires .-> Login
+    CreateCourse -. requires .-> Login
+    ManageUsers -. requires .-> Login
+    Auth --> n1["Untitled Node"]
 
-%% Guest connections
-    Guest --> Browse
-    Guest --> ViewDetail
-    Guest --> Register
-    Guest --> Login
-
-%% Student connections
-    Student --> Login
-    Student --> Browse
-    Student --> ViewDetail
-    Student --> Enroll
-    Student --> Learn
-    Student --> Track
-    Student --> MarkDone
-    Student --> StudentDash
-    Student --> ViewProfile
-    Student --> EditProfile
-    Student --> ChangePass
-    Student --> ViewNotif
-    Student --> Logout
-
-%% Teacher connections
-    Teacher --> Login
-    Teacher --> CreateCourse
-    Teacher --> EditCourse
-    Teacher --> DeleteCourse
-    Teacher --> Publish
-    Teacher --> ManageLessons
-    Teacher --> ViewStudents
-    Teacher --> TeacherDash
-    Teacher --> ViewProfile
-    Teacher --> EditProfile
-    Teacher --> ChangePass
-    Teacher --> ViewNotif
-    Teacher --> Logout
-
-%% Admin connections
-    Admin --> Login
-    Admin --> ManageUsers
-    Admin --> ManageCourses
-    Admin --> ViewReports
-    Admin --> SendNotif
-    Admin --> AdminDash
-    Admin --> ViewProfile
-    Admin --> EditProfile
-    Admin --> ChangePass
-    Admin --> ViewNotif
-    Admin --> Logout
-
-%% Include relationships
-    Enroll -.->|requires| Login
-    Learn -.->|requires| Login
-    CreateCourse -.->|requires| Login
-    ManageUsers -.->|requires| Login
-
-%% Styling
+    Guest:::actorStyle
+    Student:::actorStyle
+    Teacher:::actorStyle
+    Admin:::actorStyle
     classDef actorStyle fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#1976d2
     classDef usecaseStyle fill:#fff,stroke:#666,stroke-width:2px
     classDef systemStyle fill:#f5f5f5,stroke:#999,stroke-width:2px
-
-    class Guest,Student,Teacher,Admin actorStyle
-    class System systemStyle
 ````
 
 ### Arsitektur Microservices
